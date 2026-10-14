@@ -35,3 +35,8 @@ export function vnDateLabel(at: Date): string {
   const l = shift(at);
   return `${WEEKDAY_LABELS[l.getUTCDay()]}, ${pad(l.getUTCDate())}/${pad(l.getUTCMonth() + 1)}`;
 }
+
+/** YYYY-MM-DD of the VN calendar day containing `at`. */
+export function vnDateIso(at: Date): string {
+  return shift(at).toISOString().slice(0, 10);
+}
