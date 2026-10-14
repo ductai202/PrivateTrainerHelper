@@ -1,3 +1,9 @@
+import LoginForm from './LoginForm';
+
 export default function LoginPage() {
-  return <main className="p-4">Đăng nhập</main>;
+  return (
+    <main>
+      <LoginForm />
+    </main>
+  );
 }
