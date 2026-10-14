@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PT Helper
 
-## Getting Started
+Web app (PWA, mobile-first) cho PT gym private: hồ sơ học viên, tiến độ, meal prep, gói buổi,
+lịch ngày/tuần, checklist sau buổi, gợi ý lấp slot khi huỷ, nhắc lịch qua Zalo (gửi thủ công,
+không gọi API Zalo trong Giai đoạn 1).
 
-First, run the development server:
+Thiết kế: `docs/superpowers/specs/2026-10-15-pt-scheduling-design.md`
+Kế hoạch: `docs/superpowers/plans/2026-10-15-pt-scheduling-phase1.md`
+
+## Chạy local
+
+Cần Node 20+, Docker Desktop.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npx supabase start          # lần đầu tải image, mất vài phút
+cp .env.example .env.local  # điền các giá trị in ra bởi `npx supabase status`
+npm run dev                 # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`.env.local` cho local:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Biến | Lấy ở đâu |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | `API URL` của `npx supabase status` |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `Publishable/anon key` |
+| `SUPABASE_SERVICE_ROLE_KEY` | `Secret/service_role key` (chỉ server) |
+| `CRON_SECRET` | chuỗi bất kỳ, dùng cho `/api/cron/tick` |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | `npx web-push generate-vapid-keys` |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Tài khoản demo (chỉ local, mật khẩu `demo12345`): `owner@demo.test`, `pt.a@demo.test`, `pt.b@demo.test`.
+`npx supabase db reset` đặt lại dữ liệu mẫu.
 
-## Learn More
+## Kiểm thử
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run test               # unit (Vitest)
+npx supabase test db       # RLS (pgTAP)
+npm run e2e                # Playwright, viewport 375px
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Triển khai
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Tạo project Supabase cloud, chạy migrations: `npx supabase link` rồi `npx supabase db push`.
+2. Tạo user owner trong Auth, thêm 1 dòng `gyms` và 1 dòng `members` (role `owner`) cho user đó.
+3. Deploy lên Vercel, đặt các biến môi trường ở bảng trên (URL/keys của project cloud).
+4. Bật nhắc tự động: trong SQL editor của Supabase chạy một lần
+   `select public.schedule_tick('https://<app>.vercel.app', '<CRON_SECRET>');`
+   (`pg_cron` gọi `/api/cron/tick` mỗi 10 phút).
 
-## Deploy on Vercel
+## Cài lên điện thoại cho PT
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **Android (Chrome):** mở link, menu ⋮ → “Cài đặt ứng dụng”.
+- **iPhone (Safari):** nút Chia sẻ → “Thêm vào MH chính”. Cần iOS 16.4+ mới nhận được thông báo.
+- Mở app từ icon vừa tạo → Cài đặt → “Bật thông báo”.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Zalo
+
+- Giai đoạn 1: app soạn sẵn tin, bấm nút để copy và mở cuộc chat Zalo (`https://zalo.me/<SĐT>`).
+- Giai đoạn 2: học viên bấm link xác nhận/huỷ (không cần đăng nhập) — xem `app/c/`.
+- Giai đoạn 3: Zalo Bot (API chính thức) — xem `lib/zalo/` và `app/api/zalo-bot/webhook`.
+- Không dùng thư viện giả lập Zalo cá nhân (zca-js…) vì có nguy cơ bị khoá tài khoản.
