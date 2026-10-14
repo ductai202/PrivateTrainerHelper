@@ -1,4 +1,5 @@
 'use server';
+import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getCurrentMember } from '@/lib/auth/currentMember';
@@ -72,6 +73,7 @@ export async function markOutcome(sessionId: string, status: 'done' | 'no_show' 
   await getCurrentMember();
   const supabase = await createServerSupabase();
   await supabase.from('sessions').update({ status }).eq('id', sessionId);
+  revalidatePath('/', 'layout');
 }
 
 export async function setSigned(sessionId: string, signed: boolean) {
@@ -81,6 +83,7 @@ export async function setSigned(sessionId: string, signed: boolean) {
     .from('sessions')
     .update({ student_signed: signed, signed_at: signed ? new Date().toISOString() : null })
     .eq('id', sessionId);
+  revalidatePath('/', 'layout');
 }
 
 export async function saveWorkout(sessionId: string, content: string | null) {
@@ -90,6 +93,7 @@ export async function saveWorkout(sessionId: string, content: string | null) {
     .from('sessions')
     .update({ workout_logged: true, workout_content: content && content.trim() ? content.trim() : null })
     .eq('id', sessionId);
+  revalidatePath('/', 'layout');
 }
 
 export async function cancelSession(sessionId: string, reason: string) {
@@ -99,6 +103,7 @@ export async function cancelSession(sessionId: string, reason: string) {
     .from('sessions')
     .update({ status: 'cancelled', cancel_reason: reason || null })
     .eq('id', sessionId);
+  revalidatePath('/', 'layout');
 }
 
 export async function logMessage(p: {
