@@ -44,7 +44,10 @@ create policy members_select on members for select to authenticated
   using (gym_id = (public.current_member()).gym_id);
 
 create policy students_all on students for all to authenticated
-  using (public.can_access_student(id))
+  using (
+    gym_id = (public.current_member()).gym_id
+    and (public.is_owner(gym_id) or pt_id = (public.current_member()).id)
+  )
   with check (
     gym_id = (public.current_member()).gym_id
     and (public.is_owner(gym_id) or pt_id = (public.current_member()).id)
