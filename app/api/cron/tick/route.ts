@@ -2,7 +2,10 @@ import { NextResponse } from 'next/server';
 import { createAdminSupabase } from '@/lib/supabase/admin';
 import { collectNotifications, type NotifSession } from '@/lib/cron/collectNotifications';
 import { sendPush, pushConfigured } from '@/lib/push/send';
-import { vnDateIso, vnDayRange } from '@/lib/time';
+import { vnDateIso, vnDayRange, vnHHmm } from '@/lib/time';
+import { botConfigured, sendBotMessage } from '@/lib/zalo/botClient';
+import { linkSecret, signSessionToken } from '@/lib/links/token';
+import { reminderMessage } from '@/lib/domain/messages';
 import type { SessionStatus } from '@/lib/domain/types';
 
 export const dynamic = 'force-dynamic';
@@ -12,7 +15,6 @@ export async function POST(request: Request) {
   if (!secret || request.headers.get('authorization') !== `Bearer ${secret}`) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
-  if (!pushConfigured()) return NextResponse.json({ sent: 0, reason: 'push not configured' });
 
   const now = new Date();
   const db = createAdminSupabase();
@@ -69,7 +71,7 @@ export async function POST(request: Request) {
   });
 
   let sent = 0;
-  for (const n of due) {
+  for (const n of pushConfigured() ? due : []) {
     sent += await sendPush(n.memberId, { title: n.title, body: n.body, url: n.url });
     if (n.kind === 'checklist' && n.sessionId) {
       await db.from('sessions').update({ checklist_pushed_at: now.toISOString() }).eq('id', n.sessionId);
@@ -80,5 +82,59 @@ export async function POST(request: Request) {
       );
     }
   }
-  return NextResponse.json({ sent, due: due.length });
+  const botSent = await sendBotReminders(db, now, tomorrow, request);
+  return NextResponse.json({ sent, due: due.length, botSent });
+}
+
+/** From 18:00 VN, reminds (once) the students of tomorrow's sessions who connected the Zalo Bot. */
+async function sendBotReminders(
+  db: ReturnType<typeof createAdminSupabase>,
+  now: Date,
+  tomorrow: { start: Date; end: Date },
+  request: Request,
+): Promise<number> {
+  if (!botConfigured() || vnHHmm(now) < '18:00') return 0;
+  const { data } = await db
+    .from('sessions')
+    .select('id, student_id, start_at, students!inner(full_name, zalo_bot_chat_id), members!sessions_pt_id_fkey(display_name)')
+    .neq('status', 'cancelled')
+    .gte('start_at', tomorrow.start.toISOString())
+    .lt('start_at', tomorrow.end.toISOString());
+  const rows = (data ?? []).filter(
+    (r) => (r.students as { zalo_bot_chat_id: string | null }).zalo_bot_chat_id,
+  );
+  if (rows.length === 0) return 0;
+  const { data: done } = await db
+    .from('message_log')
+    .select('session_id')
+    .eq('kind', 'reminder')
+    .eq('channel', 'bot')
+    .in('session_id', rows.map((r) => r.id));
+  const already = new Set((done ?? []).map((d) => d.session_id));
+
+  const origin = process.env.NEXT_PUBLIC_APP_URL ?? new URL(request.url).origin;
+  const secret = linkSecret();
+  let n = 0;
+  for (const r of rows) {
+    if (already.has(r.id)) continue;
+    const st = r.students as { full_name: string; zalo_bot_chat_id: string };
+    const text = reminderMessage({
+      studentName: st.full_name,
+      ptName: (r.members as { display_name: string } | null)?.display_name ?? '',
+      startAt: new Date(r.start_at),
+      link: secret ? `${origin}/c/${signSessionToken(r.id, secret)}` : undefined,
+    });
+    if (!(await sendBotMessage(st.zalo_bot_chat_id, text))) continue;
+    const { data: sess } = await db.from('sessions').select('gym_id').eq('id', r.id).single();
+    await db.from('message_log').insert({
+      gym_id: sess!.gym_id,
+      session_id: r.id,
+      student_id: r.student_id,
+      channel: 'bot',
+      kind: 'reminder',
+      content: text,
+    });
+    n += 1;
+  }
+  return n;
 }

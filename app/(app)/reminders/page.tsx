@@ -1,4 +1,6 @@
+import { headers } from 'next/headers';
 import { getCurrentMember } from '@/lib/auth/currentMember';
+import { linkSecret, signSessionToken } from '@/lib/links/token';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { listSessions } from '@/lib/data/sessions';
 import { vnDateLabel, vnDayRange } from '@/lib/time';
@@ -19,6 +21,10 @@ export default async function RemindersPage() {
     : { data: [] };
   const reminded = new Set((log ?? []).map((l) => l.session_id));
 
+  const h = await headers();
+  const origin = process.env.NEXT_PUBLIC_APP_URL ?? `${h.get('x-forwarded-proto') ?? 'http'}://${h.get('host')}`;
+  const secret = linkSecret();
+
   return (
     <main className="space-y-3 p-4">
       <h1 className="text-xl font-semibold">Nhắc lịch ngày mai · {vnDateLabel(tomorrow.start)}</h1>
@@ -34,6 +40,7 @@ export default async function RemindersPage() {
               studentName: s.studentName,
               ptName: s.ptName,
               startAt: s.startAt,
+              link: secret ? `${origin}/c/${signSessionToken(s.id, secret)}` : undefined,
             })}
             reminded={reminded.has(s.id)}
           />

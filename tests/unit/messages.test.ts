@@ -22,3 +22,18 @@ describe('messages', () => {
     ).toBe('Chào Minh, PT Tài vừa có slot trống 17:00–18:00 Thứ 3, 20/10. Bạn có muốn tập giờ này không?');
   });
 });
+
+describe('reminder link', () => {
+  it('appends the confirm/cancel link when given', () => {
+    expect(
+      reminderMessage({
+        studentName: 'Lan',
+        ptName: 'Tài',
+        startAt: new Date('2026-10-20T01:30:00Z'),
+        link: 'https://app.test/c/abc',
+      }),
+    ).toBe(
+      'Chào Lan, nhắc lịch tập với PT Tài lúc 08:30 Thứ 3, 20/10. Bạn xác nhận giúp mình nhé! Xác nhận hoặc huỷ tại: https://app.test/c/abc',
+    );
+  });
+});

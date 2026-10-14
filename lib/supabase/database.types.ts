@@ -305,14 +305,14 @@ isOneToOne: false
                   ]
                 },"students": {
                   Row: {
-                    "archived": boolean,"birth_year": number | null,"created_at": string,"full_name": string,"gender": string | null,"goal": string | null,"gym_id": string,"health_notes": string | null,"height_cm": number | null,"id": string,"phone": string,"pt_id": string
+                    "archived": boolean,"birth_year": number | null,"bot_link_code": string,"created_at": string,"full_name": string,"gender": string | null,"goal": string | null,"gym_id": string,"health_notes": string | null,"height_cm": number | null,"id": string,"phone": string,"pt_id": string,"zalo_bot_chat_id": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "archived"?: boolean,"birth_year"?: number | null,"created_at"?: string,"full_name": string,"gender"?: string | null,"goal"?: string | null,"gym_id": string,"health_notes"?: string | null,"height_cm"?: number | null,"id"?: string,"phone": string,"pt_id": string
+                    "archived"?: boolean,"birth_year"?: number | null,"bot_link_code"?: string,"created_at"?: string,"full_name": string,"gender"?: string | null,"goal"?: string | null,"gym_id": string,"health_notes"?: string | null,"height_cm"?: number | null,"id"?: string,"phone": string,"pt_id": string,"zalo_bot_chat_id"?: string | null
                   }
                   Update: {
-                    "archived"?: boolean,"birth_year"?: number | null,"created_at"?: string,"full_name"?: string,"gender"?: string | null,"goal"?: string | null,"gym_id"?: string,"health_notes"?: string | null,"height_cm"?: number | null,"id"?: string,"phone"?: string,"pt_id"?: string
+                    "archived"?: boolean,"birth_year"?: number | null,"bot_link_code"?: string,"created_at"?: string,"full_name"?: string,"gender"?: string | null,"goal"?: string | null,"gym_id"?: string,"health_notes"?: string | null,"height_cm"?: number | null,"id"?: string,"phone"?: string,"pt_id"?: string,"zalo_bot_chat_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -355,6 +355,9 @@ isOneToOne: false
       } },
 "is_owner":
 { Args: { "gym": string }; Returns: boolean
+                           },
+"schedule_tick":
+{ Args: { "app_url": string,"cron_secret": string }; Returns: undefined
                            }
           }
           Enums: {

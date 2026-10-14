@@ -93,6 +93,11 @@ export default async function StudentPage({
           <p>Mục tiêu: {s.goal ?? '—'}</p>
           <p>Ghi chú sức khoẻ: {s.health_notes ?? '—'}</p>
           <ZaloButton phone={s.phone} />
+          <p className="text-sm" data-testid="bot-status">
+            {s.zalo_bot_chat_id
+              ? 'Zalo Bot: đã kết nối'
+              : `Zalo Bot: chưa kết nối — học viên nhắn mã ${s.bot_link_code} cho bot`}
+          </p>
           <form action={updateStudentProfile.bind(null, id)} className="space-y-3 border-t pt-3">
             <h2 className="font-medium">Sửa hồ sơ</h2>
             <label className="block space-y-1 text-sm">
