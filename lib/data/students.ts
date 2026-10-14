@@ -1,5 +1,5 @@
 import { createServerSupabase } from '@/lib/supabase/server';
-import { remainingSessions } from '@/lib/domain/packages';
+import { remainingAcrossPackages } from '@/lib/domain/packages';
 import type { SessionLite } from '@/lib/domain/types';
 
 export interface StudentRow {
@@ -27,16 +27,10 @@ export async function listStudents(): Promise<StudentRow[]> {
   return (data ?? []).map((s) => {
     const pkg = [...(s.packages ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
     const remaining = pkg
-      ? remainingSessions(
-          pkg.total_sessions,
-          pkg.id,
+      ? remainingAcrossPackages(
+          (s.packages ?? []).map((p) => p.total_sessions),
           (s.sessions ?? []).map(
-            (x) =>
-              ({
-                packageId: x.package_id,
-                status: x.status,
-                studentSigned: x.student_signed,
-              }) as SessionLite,
+            (x) => ({ status: x.status, studentSigned: x.student_signed }) as SessionLite,
           ),
         )
       : null;

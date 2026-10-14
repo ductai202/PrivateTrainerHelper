@@ -82,6 +82,10 @@ test('zalo bot webhook: secret check, link by code, confirm and cancel by reply'
   const { data: after } = await db.from('students').select('zalo_bot_chat_id').eq('id', A1).single();
   expect(after!.zalo_bot_chat_id).toBe('chat-e2e-1');
 
+  // replies act on the session the student was last reminded about
+  await db.from('message_log').insert({
+    gym_id: GYM, session_id: id, student_id: A1, channel: 'bot', kind: 'reminder', content: 'x',
+  });
   await post('OK ạ', ok);
   expect((await statusOf(id)).status).toBe('confirmed');
   await post('huỷ', ok);

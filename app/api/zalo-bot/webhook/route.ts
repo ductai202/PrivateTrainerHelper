@@ -1,4 +1,4 @@
-import { timingSafeEqual } from 'node:crypto';
+import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { createAdminSupabase } from '@/lib/supabase/admin';
 import { classifyReply, parseBotUpdate } from '@/lib/zalo/intent';
@@ -35,7 +35,18 @@ export async function POST(request: Request) {
       await sendBotMessage(msg.chatId, 'Mã kết nối không đúng. Bạn nhờ PT gửi lại mã giúp mình nhé.');
       return NextResponse.json({ ok: true, linked: false });
     }
-    await db.from('students').update({ zalo_bot_chat_id: msg.chatId }).eq('id', student.id);
+    const { error: linkError } = await db
+      .from('students')
+      .update({
+        zalo_bot_chat_id: msg.chatId,
+        // single-use: rotate so a leaked or old code cannot rebind the chat
+        bot_link_code: randomBytes(3).toString('hex').toUpperCase(),
+      })
+      .eq('id', student.id);
+    if (linkError) {
+      await sendBotMessage(msg.chatId, 'Không kết nối được. Chat này có thể đã kết nối với học viên khác.');
+      return NextResponse.json({ ok: true, linked: false });
+    }
     await sendBotMessage(
       msg.chatId,
       `Đã kết nối với PT, chào ${student.full_name}! Khi nhận nhắc lịch bạn trả lời "OK" để xác nhận hoặc "Huỷ" để huỷ buổi.`,
@@ -57,17 +68,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true });
   }
 
-  const { data: next } = await db
-    .from('sessions')
-    .select('id')
+  // act only on the session this student was last reminded about via the bot
+  const { data: lastReminder } = await db
+    .from('message_log')
+    .select('session_id')
     .eq('student_id', student.id)
-    .in('status', ['scheduled', 'confirmed'])
-    .gt('start_at', new Date().toISOString())
-    .order('start_at')
+    .eq('channel', 'bot')
+    .eq('kind', 'reminder')
+    .not('session_id', 'is', null)
+    .order('sent_at', { ascending: false })
     .limit(1)
     .maybeSingle();
+  const next = lastReminder?.session_id ? { id: lastReminder.session_id } : null;
   if (!next) {
-    await sendBotMessage(msg.chatId, 'Hiện bạn chưa có buổi tập sắp tới.');
+    await sendBotMessage(msg.chatId, 'Hiện chưa có buổi nào cần xác nhận.');
     return NextResponse.json({ ok: true });
   }
   const result = await studentRespond(next.id, kind === 'confirm' ? 'confirm' : 'cancel', '');

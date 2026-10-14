@@ -1,5 +1,5 @@
 import { createServerSupabase } from '@/lib/supabase/server';
-import { remainingSessions } from '@/lib/domain/packages';
+import { remainingAcrossPackages } from '@/lib/domain/packages';
 import type { AvailabilityWindow, FillInCandidate, SessionLite } from '@/lib/domain/types';
 import { vnDayRange, vnWeekRange } from '@/lib/time';
 
@@ -45,7 +45,7 @@ export async function getFillInCandidates(
       studentId: s.id,
       name: s.full_name,
       phone: s.phone,
-      remaining: pkg ? remainingSessions(pkg.total_sessions, pkg.id, lite) : 0,
+      remaining: pkg ? remainingAcrossPackages((s.packages ?? []).map((p) => p.total_sessions), lite) : 0,
       availability,
       sessionsOnDay: live.filter((x) => inRange(x.start_at, day)).length,
       sessionsThisWeek: live.filter((x) => inRange(x.start_at, week)).length,

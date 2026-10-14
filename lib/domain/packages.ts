@@ -11,3 +11,12 @@ export function remainingSessions(
   ).length;
   return totalSessions - used;
 }
+
+/**
+ * A student's balance across ALL packages: every package total minus every done+signed session,
+ * regardless of which package the session was booked against (renewals mid-schedule stay correct).
+ */
+export function remainingAcrossPackages(totals: number[], sessions: SessionLite[]): number {
+  const used = sessions.filter((s) => s.status === 'done' && s.studentSigned).length;
+  return totals.reduce((a, b) => a + b, 0) - used;
+}

@@ -24,6 +24,10 @@ describe('classifyReply', () => {
     ['cancel', 'cancel'],
     ['AB12CD', 'code'],
     ['xin chào', 'unknown'],
+    ['Ok anh, em Huy đây', 'unknown'],
+    ['em nghĩ là ok', 'unknown'],
+    ['không huỷ đâu', 'unknown'],
+    ['em xin huỷ', 'cancel'],
   ])('%s -> %s', (text, expected) => {
     expect(classifyReply(text)).toBe(expected);
   });

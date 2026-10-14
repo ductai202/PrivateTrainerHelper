@@ -24,14 +24,20 @@ export async function studentRespond(
   const when = `${vnHHmm(new Date(s.start_at))} ${vnDateLabel(new Date(s.start_at))}`;
 
   if (action === 'confirm') {
-    await db.from('sessions').update({ status: 'confirmed' }).eq('id', sessionId);
+    if (s.status === 'confirmed') return 'confirmed';
+    await db
+      .from('sessions')
+      .update({ status: 'confirmed' })
+      .eq('id', sessionId)
+      .in('status', ['scheduled']);
     await sendPush(s.pt_id, { title: `${name} đã xác nhận`, body: when, url: `/sessions/${sessionId}` });
     return 'confirmed';
   }
   await db
     .from('sessions')
     .update({ status: 'cancelled', cancel_reason: reason || 'Học viên huỷ qua tin nhắn' })
-    .eq('id', sessionId);
+    .eq('id', sessionId)
+    .in('status', ['scheduled', 'confirmed']);
   await sendPush(s.pt_id, {
     title: `${name} huỷ buổi`,
     body: `${when} — mở để xem gợi ý lấp slot`,

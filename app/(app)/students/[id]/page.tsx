@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { createServerSupabase } from '@/lib/supabase/server';
-import { remainingSessions } from '@/lib/domain/packages';
+import { remainingAcrossPackages } from '@/lib/domain/packages';
 import type { SessionLite } from '@/lib/domain/types';
 import { vnDateLabel } from '@/lib/time';
 import ZaloButton from '@/components/ZaloButton';
@@ -53,12 +53,10 @@ export default async function StudentPage({
 
   const pkg = pkgs?.[0];
   const remaining = pkg
-    ? remainingSessions(
-        pkg.total_sessions,
-        pkg.id,
+    ? remainingAcrossPackages(
+        (pkgs ?? []).map((p) => p.total_sessions),
         (sessions ?? []).map(
-          (x) =>
-            ({ packageId: x.package_id, status: x.status, studentSigned: x.student_signed }) as SessionLite,
+          (x) => ({ status: x.status, studentSigned: x.student_signed }) as SessionLite,
         ),
       )
     : null;

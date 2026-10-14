@@ -19,3 +19,21 @@ describe('remainingSessions', () => {
     ).toBe(-1);
   });
 });
+
+import { remainingAcrossPackages } from '@/lib/domain/packages';
+
+describe('remainingAcrossPackages', () => {
+  it('pools every package and every done+signed session, whatever package it was booked on', () => {
+    const s = [
+      mk({ status: 'done', studentSigned: true, packageId: 'old' }),
+      mk({ status: 'done', studentSigned: true, packageId: 'old' }),
+      mk({ status: 'done', studentSigned: true, packageId: 'new' }),
+      mk({ status: 'done', studentSigned: false, packageId: 'new' }),
+      mk({ status: 'scheduled', packageId: 'old' }),
+    ];
+    expect(remainingAcrossPackages([10, 12], s)).toBe(19);
+  });
+  it('is zero-safe with no packages', () => {
+    expect(remainingAcrossPackages([], [])).toBe(0);
+  });
+});

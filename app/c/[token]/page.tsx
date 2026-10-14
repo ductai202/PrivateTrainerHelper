@@ -6,6 +6,7 @@ import { vnDateLabel, vnHHmm } from '@/lib/time';
 
 async function respond(token: string, action: 'confirm' | 'cancel', form: FormData) {
   'use server';
+  if (!linkSecret()) return;
   const id = verifySessionToken(token, linkSecret());
   if (!id) return;
   await studentRespond(id, action, String(form.get('reason') ?? '').trim());
