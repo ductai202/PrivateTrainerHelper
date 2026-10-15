@@ -1,5 +1,6 @@
 import { getCurrentMember } from '@/lib/auth/currentMember';
 import { logout } from '@/app/login/actions';
+import ChangePassword from './ChangePassword';
 import EnablePush from './EnablePush';
 
 export default async function SettingsPage() {
@@ -18,6 +19,10 @@ export default async function SettingsPage() {
       <section className="space-y-2">
         <h2 className="font-medium">Thông báo</h2>
         <EnablePush />
+      </section>
+      <section className="space-y-2">
+        <h2 className="font-medium">Đổi mật khẩu</h2>
+        <ChangePassword />
       </section>
       <form action={logout}>
         <button className="min-h-12 rounded border px-4">Đăng xuất</button>
