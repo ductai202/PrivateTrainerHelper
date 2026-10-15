@@ -15,17 +15,17 @@
 | Nhắc tự động | `pg_cron` + `pg_net` trong Supabase gọi `/api/cron/tick` | Không dùng Vercel Cron |
 | Domain | Dùng `*.vercel.app` cho pilot | Gắn domain riêng sau |
 
-## Việc phải xong TRƯỚC khi mời PT (blocker)
+## Đã xong trong Giai đoạn 1.1 (code + test)
 
-Hai chỗ hổng này làm PT không đăng nhập được, nên cần sửa trong code trước khi deploy:
+Các blocker pilot đã được làm và có test tự động (xem `docs/superpowers/plans/2026-10-16-phase1.1.md`):
 
-1. **Tạo tài khoản PT không qua email.** Hiện nút "Mời PT" dùng `inviteUserByEmail`, nhưng app chưa có trang đặt mật khẩu, nên PT bấm link trong email sẽ không vào được.
-   - Làm: đổi `invitePt` (`app/(app)/owner/actions.ts`) thành tạo user bằng `admin.auth.admin.createUser({ email, password, email_confirm: true })` với mật khẩu tạm do chủ gym nhập, hiển thị mật khẩu tạm một lần cho chủ gym đưa lại PT.
-2. **Đổi mật khẩu.** Thêm mục "Đổi mật khẩu" ở trang Cài đặt (`supabase.auth.updateUser({ password })`). Không có cái này thì mật khẩu tạm sẽ phải dùng mãi.
+- Chủ gym tạo tài khoản PT bằng mật khẩu tạm ngay trong màn Quản lý; PT đăng nhập rồi đổi mật khẩu trong Cài đặt.
+- Học viên báo bận sát giờ: push hỏi PT trước buổi 90 phút, nút "HV bận"/"HV ốm" một chạm, "Đổi giờ", "Mở lại buổi", checklist có "Học viên huỷ". Huỷ không bao giờ trừ buổi.
+- Màn "Chuẩn bị ngày mai" mỗi tối (giờ do từng PT chọn): buổi hôm nay chưa cập nhật, buổi mai cần nhắc, gợi ý xếp lịch, gợi ý bài tập bằng AI.
 
-Mỗi việc làm theo TDD như Giai đoạn 1 (e2e trước). Ước lượng: nửa ngày.
+Cấu hình bổ sung cho pilot: `OPENROUTER_API_KEY` + `AI_MODEL` (không có thì nút "Gợi ý bài tập" tự ẩn, app chạy bình thường). Hướng dẫn lấy khoá: `docs/TESTING-CREDENTIALS.md`.
 
-Nên làm thêm nếu kịp (không chặn): sửa/lưu trữ học viên, nút hoàn tác khi lỡ bấm huỷ buổi (hiện huỷ xong không mở lại được), vài lỗi nhỏ còn lại trong `docs/superpowers/review-ledger-phase1.md`.
+Còn lại không chặn pilot: sửa/lưu trữ học viên, các lỗi nhỏ trong `docs/superpowers/review-ledger-phase1.md`.
 
 ## Các bước deploy
 
@@ -52,7 +52,7 @@ Nên làm thêm nếu kịp (không chặn): sửa/lưu trữ học viên, nút 
    insert into members (gym_id, user_id, display_name, role)
    values ('<gym_id>', '<user_uid>', 'Tên chủ gym', 'owner');
    ```
-3. Các PT còn lại tạo qua màn Quản lý của app (sau khi sửa blocker số 1).
+3. Các PT còn lại: đăng nhập chủ gym, vào **Quản lý → Tạo tài khoản PT**, nhập tên và email, app sinh mật khẩu tạm hiện một lần. Gửi mật khẩu cho PT và nhờ đổi ngay trong **Cài đặt → Đổi mật khẩu**.
 
 ### C. Vercel
 
@@ -68,6 +68,8 @@ Nên làm thêm nếu kịp (không chặn): sửa/lưu trữ học viên, nút 
    | `LINK_SECRET` | chuỗi ngẫu nhiên khác, ký link học viên |
    | `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | `npx web-push generate-vapid-keys` |
    | `VAPID_SUBJECT` | `mailto:<email của bạn>` |
+   | `OPENROUTER_API_KEY` | khoá OpenRouter (tuỳ chọn; thiếu thì ẩn nút gợi ý bài tập) |
+   | `AI_MODEL` | ví dụ `meta-llama/llama-3.3-70b-instruct:free` |
    | `NEXT_PUBLIC_APP_URL` | URL production, ví dụ `https://pt-helper.vercel.app` |
 
    `NEXT_PUBLIC_*` được gắn vào bản build, nên đổi chúng phải redeploy.

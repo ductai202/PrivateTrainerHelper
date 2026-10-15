@@ -13,6 +13,8 @@ Cập nhật: 2026-10-15. Thứ tự dưới đây là giả thuyết, sẽ đ�
 
 ## Giai đoạn 1.1 — Sẵn sàng pilot (trước khi mời PT)
 
+**Trạng thái: code xong, test xanh** (92 unit, RLS, 46 e2e). Chưa thử với Zalo/Push/AI thật, xem `docs/TESTING-CREDENTIALS.md`.
+
 Kế hoạch chi tiết (đã duyệt): `docs/superpowers/plans/2026-10-16-phase1.1.md`.
 
 Chặn pilot:

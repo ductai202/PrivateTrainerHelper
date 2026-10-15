@@ -12,8 +12,17 @@ test.beforeEach(async () => {
   await resetRecentSessions();
 });
 
-async function insertSession(startOffsetH: number, durationH = 1) {
-  const start = new Date(Date.now() + startOffsetH * 3600 * 1000);
+/** 10:00 VN time, two days from now: inside every seeded availability window whatever time the suite runs. */
+function tenOclockInTwoDays(): Date {
+  const d = new Date(`${vnToday()}T12:00:00+07:00`);
+  d.setDate(d.getDate() + 2);
+  const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(d);
+  return new Date(`${day}T10:00:00+07:00`);
+}
+
+async function insertSession(startOffsetH: number | Date, durationH = 1) {
+  const start =
+    startOffsetH instanceof Date ? startOffsetH : new Date(Date.now() + startOffsetH * 3600 * 1000);
   const { data, error } = await adminDb()
     .from('sessions')
     .insert({
@@ -69,7 +78,7 @@ test('checklist: done + signed consumes the package, unsigning restores it', asy
 });
 
 test('cancel suggests fill-ins that can be invited and booked', async ({ page }) => {
-  const id = await insertSession(30); // tomorrow-ish
+  const id = await insertSession(tenOclockInTwoDays());
   await loginAs(page, 'ptA');
   await page.goto(`/sessions/${id}`);
   await page.getByLabel('Lý do huỷ').fill('Bận đột xuất');

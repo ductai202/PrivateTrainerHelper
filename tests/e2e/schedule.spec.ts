@@ -31,7 +31,7 @@ test('PT A creates sessions, conflicts blocked, back-to-back allowed', async ({ 
   await expect(page.getByText('Học viên A2')).toBeVisible();
 
   await page.goto('/week');
-  const a1 = page.getByRole('link', { name: /17:00–18:00 Học viên A1/ });
+  const a1 = page.getByRole('link', { name: /17:00–18:00.*Học viên A1/ });
   await expect(a1).toBeVisible();
   await page.getByRole('link', { name: 'Tuần trước' }).click();
   await expect(page).toHaveURL(/w=-1/);
@@ -44,7 +44,7 @@ test('owner sees all PTs and can filter', async ({ page }) => {
   await expect(page).toHaveURL(/today/);
   await page.context().clearCookies();
   await loginAs(page, 'owner');
-  const a1 = page.getByRole('link', { name: /09:00–10:00 Học viên A1/ });
+  const a1 = page.getByRole('link', { name: /09:00–10:00.*Học viên A1/ });
   await expect(a1).toBeVisible();
   await page.getByLabel('PT').selectOption({ label: 'PT Bình' });
   await page.getByRole('button', { name: 'Lọc' }).click();
