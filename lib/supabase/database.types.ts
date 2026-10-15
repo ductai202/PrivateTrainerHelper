@@ -119,14 +119,14 @@ isOneToOne: false
                   ]
                 },"members": {
                   Row: {
-                    "created_at": string,"display_name": string,"evening_review_time": string,"gym_id": string,"id": string,"role": string,"user_id": string
+                    "bot_link_code": string,"created_at": string,"display_name": string,"evening_review_time": string,"gym_id": string,"id": string,"role": string,"user_id": string,"zalo_bot_chat_id": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"display_name": string,"evening_review_time"?: string,"gym_id": string,"id"?: string,"role": string,"user_id": string
+                    "bot_link_code"?: string,"created_at"?: string,"display_name": string,"evening_review_time"?: string,"gym_id": string,"id"?: string,"role": string,"user_id": string,"zalo_bot_chat_id"?: string | null
                   }
                   Update: {
-                    "created_at"?: string,"display_name"?: string,"evening_review_time"?: string,"gym_id"?: string,"id"?: string,"role"?: string,"user_id"?: string
+                    "bot_link_code"?: string,"created_at"?: string,"display_name"?: string,"evening_review_time"?: string,"gym_id"?: string,"id"?: string,"role"?: string,"user_id"?: string,"zalo_bot_chat_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -432,13 +432,15 @@ isOneToOne: false
                            },
 "current_member":
 { Args: Record<PropertyKey, never>; Returns: {
-              "created_at": string,
+              "bot_link_code": string,
+"created_at": string,
 "display_name": string,
 "evening_review_time": string,
 "gym_id": string,
 "id": string,
 "role": string,
-"user_id": string
+"user_id": string,
+"zalo_bot_chat_id": string | null
             }
                           SetofOptions: {
         from: "*"

@@ -29,6 +29,7 @@ export default defineConfig({
         AI_MODEL: 'test/model',
         ZALO_BOT_TOKEN: 'TESTBOT',
         ZALO_BOT_WEBHOOK_SECRET: 'local-bot-secret',
+        BOT_REMINDER_FROM: '00:00',
         LINK_SECRET: 'local-link-secret',
         CRON_SECRET: 'local-cron-secret',
         ZALO_BOT_API_BASE: 'http://127.0.0.1:4010',

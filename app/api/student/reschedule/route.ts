@@ -18,6 +18,12 @@ export async function POST(request: Request) {
   ) {
     return NextResponse.json({ error: 'invalid request' }, { status: 400 });
   }
-  const r = await requestReschedule(body.token, body.sessionId, body.start);
+  const r = await requestReschedule(
+    body.token,
+    body.sessionId,
+    body.start,
+    new Date(),
+    new URL(request.url).origin,
+  );
   return NextResponse.json(r.error ? { error: r.error } : { ok: true }, { status: r.status });
 }

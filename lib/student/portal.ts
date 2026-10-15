@@ -1,5 +1,5 @@
 import { createAdminSupabase } from '@/lib/supabase/admin';
-import { sendPush } from '@/lib/push/send';
+import { notifyMember } from '@/lib/notify';
 import { linkSecret, verifyStudentToken } from '@/lib/links/token';
 import { freeSlots } from '@/lib/domain/slots';
 import { remainingAcrossPackages } from '@/lib/domain/packages';
@@ -97,6 +97,7 @@ export async function requestReschedule(
   sessionId: string,
   startIso: string,
   now = new Date(),
+  origin?: string,
 ): Promise<RescheduleOutcome> {
   const student = await resolveStudent(token);
   if (!student) return { status: 401, error: 'Liên kết không hợp lệ hoặc đã hết hạn.' };
@@ -137,11 +138,15 @@ export async function requestReschedule(
   });
   if (error) return { status: 409, error: 'Không gửi được yêu cầu' };
 
-  await sendPush(s.pt_id, {
-    title: `${student.full_name} xin đổi giờ`,
-    body: `Sang ${vnHHmm(start)} ${vnDateLabel(start)}`,
-    url: `/sessions/${s.id}`,
-  });
+  await notifyMember(
+    s.pt_id,
+    {
+      title: `${student.full_name} xin đổi giờ`,
+      body: `Sang ${vnHHmm(start)} ${vnDateLabel(start)}`,
+      url: `/sessions/${s.id}`,
+    },
+    { origin },
+  );
   return { status: 200 };
 }
 

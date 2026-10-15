@@ -1,5 +1,5 @@
 import { createAdminSupabase } from '@/lib/supabase/admin';
-import { sendPush } from '@/lib/push/send';
+import { notifyMember } from '@/lib/notify';
 import { vnDateLabel, vnHHmm } from '@/lib/time';
 
 export type ActionResult = 'confirmed' | 'cancelled' | 'not_allowed';
@@ -9,6 +9,7 @@ export async function studentRespond(
   sessionId: string,
   action: 'confirm' | 'cancel',
   reason: string,
+  origin?: string,
 ): Promise<ActionResult> {
   const db = createAdminSupabase();
   const { data: s } = await db
@@ -30,7 +31,11 @@ export async function studentRespond(
       .update({ status: 'confirmed' })
       .eq('id', sessionId)
       .in('status', ['scheduled']);
-    await sendPush(s.pt_id, { title: `${name} đã xác nhận`, body: when, url: `/sessions/${sessionId}` });
+    await notifyMember(
+      s.pt_id,
+      { title: `${name} đã xác nhận`, body: when, url: `/sessions/${sessionId}` },
+      { origin },
+    );
     return 'confirmed';
   }
   await db
@@ -43,10 +48,14 @@ export async function studentRespond(
     })
     .eq('id', sessionId)
     .in('status', ['scheduled', 'confirmed']);
-  await sendPush(s.pt_id, {
-    title: `${name} huỷ buổi`,
-    body: `${when} — mở để xem gợi ý lấp slot`,
-    url: `/sessions/${sessionId}`,
-  });
+  await notifyMember(
+    s.pt_id,
+    {
+      title: `${name} huỷ buổi`,
+      body: `${when} — mở để xem gợi ý lấp slot`,
+      url: `/sessions/${sessionId}`,
+    },
+    { origin },
+  );
   return 'cancelled';
 }

@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createAdminSupabase } from '@/lib/supabase/admin';
 import { collectNotifications, PRECHECK_MINUTES, type NotifSession } from '@/lib/cron/collectNotifications';
-import { sendPush, pushConfigured } from '@/lib/push/send';
+import { pushConfigured } from '@/lib/push/send';
+import { notifyMember } from '@/lib/notify';
 import { vnDateIso, vnDayRange, vnHHmm } from '@/lib/time';
 import { botConfigured, sendBotMessage } from '@/lib/zalo/botClient';
 import { linkSecret, signSessionToken } from '@/lib/links/token';
@@ -80,8 +81,10 @@ export async function POST(request: Request) {
   });
 
   let sent = 0;
-  for (const n of pushConfigured() ? due : []) {
-    sent += await sendPush(n.memberId, { title: n.title, body: n.body, url: n.url });
+  const origin = process.env.NEXT_PUBLIC_APP_URL ?? new URL(request.url).origin;
+  for (const n of pushConfigured() || botConfigured() ? due : []) {
+    const r = await notifyMember(n.memberId, { title: n.title, body: n.body, url: n.url }, { origin });
+    sent += r.push + (r.bot ? 1 : 0);
     if (n.kind === 'checklist' && n.sessionId) {
       await db.from('sessions').update({ checklist_pushed_at: now.toISOString() }).eq('id', n.sessionId);
     } else if (n.kind === 'precheck' && n.sessionId) {
@@ -105,7 +108,7 @@ async function sendBotReminders(
   tomorrow: { start: Date; end: Date },
   request: Request,
 ): Promise<number> {
-  if (!botConfigured() || vnHHmm(now) < '18:00') return 0;
+  if (!botConfigured() || vnHHmm(now) < (process.env.BOT_REMINDER_FROM ?? '18:00')) return 0;
   const { data } = await db
     .from('sessions')
     .select('id, student_id, start_at, students!inner(full_name, zalo_bot_chat_id), members!sessions_pt_id_fkey(display_name)')

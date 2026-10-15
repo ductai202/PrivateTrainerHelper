@@ -1,4 +1,5 @@
 import { revalidatePath } from 'next/cache';
+import { headers } from 'next/headers';
 import { createAdminSupabase } from '@/lib/supabase/admin';
 import { linkSecret, verifySessionToken } from '@/lib/links/token';
 import { studentRespond } from '@/lib/links/sessionActions';
@@ -15,7 +16,10 @@ async function respond(token: string, action: 'confirm' | 'cancel', form: FormDa
     .eq('id', id)
     .maybeSingle();
   if (!live || live.link_revoked_at) return;
-  await studentRespond(id, action, String(form.get('reason') ?? '').trim());
+  const h = await headers();
+  const origin =
+    process.env.NEXT_PUBLIC_APP_URL ?? `${h.get('x-forwarded-proto') ?? 'http'}://${h.get('host')}`;
+  await studentRespond(id, action, String(form.get('reason') ?? '').trim(), origin);
   revalidatePath(`/c/${token}`);
 }
 

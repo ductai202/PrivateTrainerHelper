@@ -34,6 +34,7 @@ export async function POST(request: Request) {
   }
 
   const kind = classifyReply(msg.text);
+  const origin = process.env.NEXT_PUBLIC_APP_URL ?? new URL(request.url).origin;
 
   if (kind === 'code') {
     // brute-force guard: a handful of tries per chat per 10 minutes
@@ -50,11 +51,38 @@ export async function POST(request: Request) {
     }
     await db.from('bot_link_attempts').insert({ chat_id: msg.chatId });
 
+    const code = msg.text.trim().toUpperCase();
     const { data: student } = await db
       .from('students')
       .select('id, full_name')
-      .eq('bot_link_code', msg.text.trim().toUpperCase())
+      .eq('bot_link_code', code)
       .maybeSingle();
+    if (!student) {
+      // not a student code: maybe a PT connecting their own chat
+      const { data: pt } = await db
+        .from('members')
+        .select('id, display_name')
+        .eq('bot_link_code', code)
+        .maybeSingle();
+      if (pt) {
+        const { error: ptError } = await db
+          .from('members')
+          .update({
+            zalo_bot_chat_id: msg.chatId,
+            bot_link_code: randomBytes(3).toString('hex').toUpperCase(),
+          })
+          .eq('id', pt.id);
+        if (ptError) {
+          await sendBotMessage(msg.chatId, 'Không kết nối được. Chat này có thể đã kết nối với tài khoản khác.');
+          return NextResponse.json({ ok: true, linked: false });
+        }
+        await sendBotMessage(
+          msg.chatId,
+          `Đã kết nối cho PT ${pt.display_name}. Khi học viên xác nhận, huỷ hoặc xin đổi giờ, bạn sẽ nhận tin ở đây.`,
+        );
+        return NextResponse.json({ ok: true, linked: true, role: 'pt' });
+      }
+    }
     if (!student) {
       await sendBotMessage(msg.chatId, 'Mã kết nối không đúng. Bạn nhờ PT gửi lại mã giúp mình nhé.');
       return NextResponse.json({ ok: true, linked: false });
@@ -84,6 +112,20 @@ export async function POST(request: Request) {
     .eq('zalo_bot_chat_id', msg.chatId)
     .maybeSingle();
   if (!student) {
+    const { data: pt } = await db
+      .from('members')
+      .select('id')
+      .eq('zalo_bot_chat_id', msg.chatId)
+      .maybeSingle();
+    if (pt) {
+      if (kind === 'stop') {
+        await db.from('members').update({ zalo_bot_chat_id: null }).eq('id', pt.id);
+        await sendBotMessage(msg.chatId, 'Đã ngắt kết nối. Lấy mã mới trong Cài đặt của app nếu muốn kết nối lại.');
+        return NextResponse.json({ ok: true, disconnected: true, role: 'pt' });
+      }
+      await sendBotMessage(msg.chatId, 'Mình sẽ báo cho bạn ở đây khi học viên xác nhận, huỷ hoặc xin đổi giờ. Nhắn "stop" để ngắt kết nối.');
+      return NextResponse.json({ ok: true, role: 'pt' });
+    }
     await sendBotMessage(msg.chatId, 'Bạn nhập mã kết nối PT đã gửi để bắt đầu nhé.');
     return NextResponse.json({ ok: true, linked: false });
   }
@@ -115,7 +157,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true });
   }
 
-  const result = await studentRespond(lastAsked.session_id, kind === 'confirm' ? 'confirm' : 'cancel', '');
+  const result = await studentRespond(
+    lastAsked.session_id,
+    kind === 'confirm' ? 'confirm' : 'cancel',
+    '',
+    origin,
+  );
   await sendBotMessage(
     msg.chatId,
     result === 'confirmed'
