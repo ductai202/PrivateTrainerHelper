@@ -38,9 +38,10 @@ export type WorkoutResult = { ok: true; plan: WorkoutPlan } | { ok: false; error
 
 const MAX_NOTE_CHARS = 600;
 const MAX_EXERCISES = 12;
-const DEFAULT_MODEL = 'meta-llama/llama-3.3-70b-instruct:free';
+const DEFAULT_MODEL = 'google/gemma-4-31b-it:free,nvidia/nemotron-3-super-120b-a12b:free,openrouter/free';
+const DEFAULT_MAX_TOKENS = 6000;
 const DEFAULT_BASE = 'https://openrouter.ai/api/v1';
-const TIMEOUT_MS = 45_000;
+const TIMEOUT_MS = 60_000;
 
 const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n) + '…' : s);
 const firstName = (full: string) => full.trim().split(/\s+/).pop() ?? full;
@@ -145,19 +146,23 @@ export function aiConfigured(env: Env = process.env): boolean {
   return !!env.OPENROUTER_API_KEY;
 }
 
-export async function suggestWorkout(
-  ctx: WorkoutContext,
-  deps: { env?: Env; fetchImpl?: typeof fetch } = {},
-): Promise<WorkoutResult> {
-  const env = deps.env ?? process.env;
-  const doFetch = deps.fetchImpl ?? fetch;
-  if (!aiConfigured(env)) return { ok: false, error: 'AI chưa được cấu hình' };
+/** One attempt against one model. */
+type Attempt =
+  | { kind: 'plan'; plan: WorkoutPlan }
+  | { kind: 'busy' } // rate limited, server error or network: try the next model
+  | { kind: 'unusable' } // answered, but not a plan we can use: try the next model
+  | { kind: 'auth' }; // key rejected: no point trying other models
 
-  const { system, user } = buildWorkoutPrompt(ctx);
-  const base = (env.OPENROUTER_BASE_URL ?? DEFAULT_BASE).replace(/\/$/, '');
+async function attempt(
+  model: string,
+  system: string,
+  user: string,
+  env: Env,
+  doFetch: typeof fetch,
+): Promise<Attempt> {
+  const base = (env.OPENROUTER_BASE_URL ?? DEFAULT_BASE).replace(/[/]+$/, '');
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-
   let res: Response;
   try {
     res = await doFetch(`${base}/chat/completions`, {
@@ -169,9 +174,10 @@ export async function suggestWorkout(
         'X-Title': 'PT Helper',
       },
       body: JSON.stringify({
-        model: env.AI_MODEL ?? DEFAULT_MODEL,
+        model,
         temperature: 0.4,
-        max_tokens: 1800,
+        // reasoning models spend part of this on thinking before they write the answer
+        max_tokens: Number(env.AI_MAX_TOKENS) > 0 ? Number(env.AI_MAX_TOKENS) : DEFAULT_MAX_TOKENS,
         messages: [
           { role: 'system', content: system },
           { role: 'user', content: user },
@@ -179,20 +185,52 @@ export async function suggestWorkout(
       }),
     });
   } catch {
-    return { ok: false, error: 'AI đang bận, thử lại sau ít phút' };
+    return { kind: 'busy' };
   } finally {
     clearTimeout(timer);
   }
 
-  if (res.status === 401 || res.status === 403) return { ok: false, error: 'Khoá AI không hợp lệ' };
-  if (!res.ok) return { ok: false, error: 'AI đang bận, thử lại sau ít phút' };
-
+  if (res.status === 401 || res.status === 403) return { kind: 'auth' };
+  if (!res.ok) return { kind: 'busy' };
   try {
     const body = (await res.json()) as { choices?: { message?: { content?: unknown } }[] };
     const content = body.choices?.[0]?.message?.content;
-    if (typeof content !== 'string') throw new Error('empty');
-    return { ok: true, plan: parseWorkoutPlan(content) };
+    if (typeof content !== 'string') return { kind: 'unusable' };
+    return { kind: 'plan', plan: parseWorkoutPlan(content) };
   } catch {
-    return { ok: false, error: 'AI trả về nội dung không dùng được, hãy thử lại' };
+    return { kind: 'unusable' };
   }
+}
+
+/**
+ * `AI_MODEL` may list several models separated by commas; they are tried in order, so a
+ * rate-limited free model falls through to the next one.
+ */
+export async function suggestWorkout(
+  ctx: WorkoutContext,
+  deps: { env?: Env; fetchImpl?: typeof fetch } = {},
+): Promise<WorkoutResult> {
+  const env = deps.env ?? process.env;
+  const doFetch = deps.fetchImpl ?? fetch;
+  if (!aiConfigured(env)) return { ok: false, error: 'AI chưa được cấu hình' };
+
+  const { system, user } = buildWorkoutPrompt(ctx);
+  const models = (env.AI_MODEL ?? DEFAULT_MODEL)
+    .split(',')
+    .map((m) => m.trim())
+    .filter(Boolean);
+
+  let sawBusy = false;
+  for (const model of models) {
+    const r = await attempt(model, system, user, env, doFetch);
+    if (r.kind === 'plan') return { ok: true, plan: r.plan };
+    if (r.kind === 'auth') return { ok: false, error: 'Khoá AI không hợp lệ' };
+    if (r.kind === 'busy') sawBusy = true;
+  }
+  return {
+    ok: false,
+    error: sawBusy
+      ? 'AI đang bận, thử lại sau ít phút'
+      : 'AI trả về nội dung không dùng được, hãy thử lại',
+  };
 }

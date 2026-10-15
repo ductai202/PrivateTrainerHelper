@@ -177,3 +177,48 @@ describe('suggestWorkout', () => {
     expect(r.ok).toBe(false);
   });
 });
+
+describe('suggestWorkout model fallback', () => {
+  const env = { OPENROUTER_API_KEY: 'k', AI_MODEL: 'a/one:free, b/two:free', OPENROUTER_BASE_URL: 'http://x/api/v1' };
+  const ok = (content: string) =>
+    new Response(JSON.stringify({ choices: [{ message: { content } }] }), { status: 200 });
+
+  it('tries the next model when the first is rate limited', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(new Response('{}', { status: 429 }))
+      .mockResolvedValueOnce(ok(JSON.stringify(VALID)));
+    const r = await suggestWorkout(ctx, { env, fetchImpl });
+    expect(r.ok).toBe(true);
+    expect(JSON.parse(fetchImpl.mock.calls[0][1].body).model).toBe('a/one:free');
+    expect(JSON.parse(fetchImpl.mock.calls[1][1].body).model).toBe('b/two:free');
+  });
+
+  it('also falls through on an empty answer (a reasoning model that ran out of tokens)', async () => {
+    const empty = new Response(JSON.stringify({ choices: [{ message: { content: null } }] }), { status: 200 });
+    const fetchImpl = vi.fn().mockResolvedValueOnce(empty).mockResolvedValueOnce(ok(JSON.stringify(VALID)));
+    const r = await suggestWorkout(ctx, { env, fetchImpl });
+    expect(r.ok).toBe(true);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not keep trying when the key is rejected', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(new Response('{}', { status: 401 }));
+    const r = await suggestWorkout(ctx, { env, fetchImpl });
+    expect(r).toEqual({ ok: false, error: 'Khoá AI không hợp lệ' });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports busy when every model fails', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(new Response('{}', { status: 429 }));
+    const r = await suggestWorkout(ctx, { env, fetchImpl });
+    expect(r).toEqual({ ok: false, error: 'AI đang bận, thử lại sau ít phút' });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it('leaves room for reasoning models by default', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(ok(JSON.stringify(VALID)));
+    await suggestWorkout(ctx, { env, fetchImpl });
+    expect(JSON.parse(fetchImpl.mock.calls[0][1].body).max_tokens).toBeGreaterThanOrEqual(4000);
+  });
+});

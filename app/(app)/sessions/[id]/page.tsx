@@ -13,6 +13,8 @@ import RescheduleForm from './RescheduleForm';
 import RescheduleRequest from './RescheduleRequest';
 import WorkoutSuggest from './WorkoutSuggest';
 
+export const maxDuration = 60;
+
 const STATUS_LABEL: Record<string, string> = {
   scheduled: 'Chưa diễn ra',
   confirmed: 'Đã xác nhận',
