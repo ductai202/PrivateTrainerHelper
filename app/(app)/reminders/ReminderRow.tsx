@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { useState } from 'react';
 import ZaloButton from '@/components/ZaloButton';
 import { logMessage } from '../sessions/actions';
@@ -11,6 +12,7 @@ export default function ReminderRow(p: {
   message: string;
   reminded: boolean;
   confirmed?: boolean;
+  workoutHref?: string;
 }) {
   const [done, setDone] = useState(p.reminded);
   return (
@@ -39,6 +41,11 @@ export default function ReminderRow(p: {
             });
           }}
         />
+      )}
+      {p.workoutHref && (
+        <Link href={p.workoutHref} className="inline-block min-h-11 text-sm underline">
+          Soạn bài tập (gợi ý AI)
+        </Link>
       )}
     </li>
   );

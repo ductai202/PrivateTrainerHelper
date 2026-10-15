@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createAdminSupabase } from '@/lib/supabase/admin';
-import { collectNotifications, type NotifSession } from '@/lib/cron/collectNotifications';
+import { collectNotifications, PRECHECK_MINUTES, type NotifSession } from '@/lib/cron/collectNotifications';
 import { sendPush, pushConfigured } from '@/lib/push/send';
 import { vnDateIso, vnDayRange, vnHHmm } from '@/lib/time';
 import { botConfigured, sendBotMessage } from '@/lib/zalo/botClient';
@@ -21,11 +21,14 @@ export async function POST(request: Request) {
   const today = vnDayRange(now);
   const tomorrow = vnDayRange(new Date(today.end.getTime() + 1000));
 
+  // Look ahead past midnight: a 00:30 session must still get its 90-minute precheck at 23:00.
+  const horizon = new Date(Math.max(today.end.getTime(), now.getTime() + PRECHECK_MINUTES * 60_000));
+
   const { data: todays } = await db
     .from('sessions')
     .select('id, pt_id, student_id, package_id, start_at, end_at, status, student_signed, workout_logged, checklist_pushed_at, checklist_reminded_at, precheck_pushed_at, students(full_name)')
     .gte('start_at', today.start.toISOString())
-    .lt('start_at', today.end.toISOString());
+    .lt('start_at', horizon.toISOString());
 
   const sessions: NotifSession[] = (todays ?? []).map((r) => ({
     id: r.id,

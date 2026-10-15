@@ -4,11 +4,13 @@ import { getFillInCandidates } from '@/lib/data/fillIns';
 import { suggestFillIns } from '@/lib/domain/fillIns';
 import { fillInInviteMessage } from '@/lib/domain/messages';
 import { QUICK_REASONS } from '@/lib/domain/reasons';
+import { aiConfigured } from '@/lib/ai/suggestWorkout';
 import { vnDateLabel, vnHHmm } from '@/lib/time';
 import { cancelSession, markOutcome, saveWorkout, setSigned } from '../actions';
 import { confirmSession, reopenSession, studentCancelled } from '../lateChanges';
 import FillInInvite from './FillInInvite';
 import RescheduleForm from './RescheduleForm';
+import WorkoutSuggest from './WorkoutSuggest';
 
 const STATUS_LABEL: Record<string, string> = {
   scheduled: 'Chưa diễn ra',
@@ -123,6 +125,7 @@ export default async function SessionPage({
           <div className="space-y-2">
             <h2 className="font-medium">Bài tập hôm nay</h2>
             {s.workoutLogged && <p className="text-sm text-green-700">Đã ghi bài tập</p>}
+            {aiConfigured() && <WorkoutSuggest sessionId={s.id} />}
             <form
               action={async (f: FormData) => {
                 'use server';
