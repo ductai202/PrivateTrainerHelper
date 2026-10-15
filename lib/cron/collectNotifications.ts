@@ -14,7 +14,7 @@ export interface CollectData {
   tomorrowCountByPt: Record<string, number>;
   remindedTomorrowByPt: Record<string, number>;
   pushLog: { memberId: string; kind: string; forDate: string }[];
-  /** 'HH:mm' (VN) at which each PT wants the evening review; 20:00 when absent. */
+  /** 'HH:mm' (VN) at which each PT wants the evening review; 22:00 when absent. */
   reviewTimeByPt?: Record<string, string>;
 }
 
@@ -28,7 +28,7 @@ export interface Notification {
 }
 
 export const PRECHECK_MINUTES = 90;
-export const DEFAULT_REVIEW_TIME = '20:00';
+export const DEFAULT_REVIEW_TIME = '22:00';
 const EOD_FROM = '21:00';
 
 /** Pure: decides which pushes are due at `now`. The caller persists the dedupe markers. */

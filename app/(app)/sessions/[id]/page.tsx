@@ -1,5 +1,6 @@
 import { createServerSupabase } from '@/lib/supabase/server';
 import { SESSION_SELECT, toSessionRow } from '@/lib/data/sessions';
+import { addressFor } from '@/lib/domain/address';
 import { getFillInCandidates } from '@/lib/data/fillIns';
 import { suggestFillIns } from '@/lib/domain/fillIns';
 import { fillInInviteMessage } from '@/lib/domain/messages';
@@ -210,8 +211,10 @@ export default async function SessionPage({
                   name={c.name}
                   phone={c.phone}
                   message={fillInInviteMessage({
-                    studentName: c.name,
-                    ptName: s.ptName,
+                    address: addressFor(
+                      { gender: s.ptGender, birthYear: s.ptBirthYear },
+                      { gender: c.gender ?? null, birthYear: c.birthYear ?? null, fullName: c.name },
+                    ),
                     startAt: s.startAt,
                     endAt: s.endAt,
                   })}

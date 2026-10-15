@@ -25,10 +25,10 @@ where u.email like '%@demo.test';
 
 insert into gyms (id, name) values ('11111111-0000-0000-0000-000000000001', 'Demo Gym');
 
-insert into members (id, gym_id, user_id, display_name, role) values
-  ('bbbbbbbb-0000-0000-0000-000000000001', '11111111-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000001', 'Chủ gym', 'owner'),
-  ('bbbbbbbb-0000-0000-0000-000000000002', '11111111-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000002', 'PT An', 'pt'),
-  ('bbbbbbbb-0000-0000-0000-000000000003', '11111111-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000003', 'PT Bình', 'pt');
+insert into members (id, gym_id, user_id, display_name, role, gender, birth_year) values
+  ('bbbbbbbb-0000-0000-0000-000000000001', '11111111-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000001', 'Chủ gym', 'owner', 'male', 1985),
+  ('bbbbbbbb-0000-0000-0000-000000000002', '11111111-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000002', 'PT An', 'pt', 'male', 1992),
+  ('bbbbbbbb-0000-0000-0000-000000000003', '11111111-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000003', 'PT Bình', 'pt', 'female', 1996);
 
 insert into students (id, gym_id, pt_id, full_name, phone, birth_year, gender, height_cm, goal) values
   ('cccccccc-0000-0000-0000-000000000001', '11111111-0000-0000-0000-000000000001', 'bbbbbbbb-0000-0000-0000-000000000002', 'Học viên A1', '0900000001', 1995, 'female', 160, 'Giảm mỡ'),

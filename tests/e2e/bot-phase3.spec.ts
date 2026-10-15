@@ -116,7 +116,7 @@ test('"Bận" cancels the session the student was asked about and records it as 
   const s = await sessionRow(id);
   expect(s.status).toBe('cancelled');
   expect(s.cancelled_by).toBe('student');
-  expect((await sentTo(request, c)).some((m) => /huỷ/i.test(m.text))).toBe(true);
+  expect((await sentTo(request, c)).some((m) => /bận rồi nha/i.test(m.text))).toBe(true);
 });
 
 test('a casual message containing "bạn" never cancels anything', async ({ request }) => {

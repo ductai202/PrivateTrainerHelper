@@ -9,7 +9,9 @@
     "lint": "eslint",
     "test": "vitest run",
     "e2e": "playwright test",
-    "db:types": "supabase gen types typescript --local > lib/supabase/database.types.ts"
+    "db:types": "supabase gen types typescript --local > lib/supabase/database.types.ts",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "create-admin": "tsx scripts/create-admin.mts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
@@ -34,6 +36,7 @@
     "eslint-config-next": "15.5.28",
     "supabase": "^2.121.0",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5",
     "vitest": "^3.2.7"
   }

@@ -56,9 +56,9 @@ describe('precheck push (90 minutes before a session)', () => {
 describe('per-PT evening review time', () => {
   const data = { ...base, tomorrowCountByPt: { a: 2, b: 2 }, remindedTomorrowByPt: {} };
 
-  it('uses 20:00 when the PT has no preference', () => {
-    expect(collectNotifications(at('19:59'), data)).toEqual([]);
-    expect(collectNotifications(at('20:00'), data).map((n) => n.memberId).sort()).toEqual(['a', 'b']);
+  it('uses 22:00 when the PT has no preference', () => {
+    expect(collectNotifications(at('21:59'), data)).toEqual([]);
+    expect(collectNotifications(at('22:00'), data).map((n) => n.memberId).sort()).toEqual(['a', 'b']);
   });
 
   it('honours each PT preference', () => {

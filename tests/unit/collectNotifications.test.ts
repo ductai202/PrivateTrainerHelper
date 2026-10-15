@@ -40,15 +40,15 @@ describe('collectNotifications', () => {
     expect(done).toEqual([]);
   });
 
-  it('tomorrow reminder from 20:00 only when something is un-reminded', () => {
+  it('tomorrow reminder from 22:00 only when something is un-reminded', () => {
     const d = { ...base, tomorrowCountByPt: { pt: 3 }, remindedTomorrowByPt: { pt: 1 } };
-    expect(collectNotifications(at('19:59'), d)).toEqual([]);
-    const out = collectNotifications(at('20:00'), d);
+    expect(collectNotifications(at('21:59'), d)).toEqual([]);
+    const out = collectNotifications(at('22:00'), d);
     expect(out).toHaveLength(1);
     expect(out[0]).toMatchObject({ kind: 'tomorrow', url: '/reminders' });
     expect(out[0].body).toContain('2');
     expect(
-      collectNotifications(at('20:00'), { ...d, remindedTomorrowByPt: { pt: 3 } }),
+      collectNotifications(at('22:00'), { ...d, remindedTomorrowByPt: { pt: 3 } }),
     ).toEqual([]);
   });
 });

@@ -22,7 +22,7 @@ test('tomorrow reminders list, copy message and mark as reminded', async ({ page
   await loginAs(page, 'ptA');
   await page.goto('/reminders');
   const row = page.getByTestId('reminder-row').filter({ hasText: 'Học viên A1' });
-  await expect(row).toContainText('Chào Học viên A1, nhắc lịch tập với PT PT An lúc 10:00');
+  await expect(row).toContainText('Hi em A1 ơi 👋 Anh nhắc lịch tập lúc 10:00');
   await row.getByRole('link', { name: 'Nhắc qua Zalo' }).click();
   await expect(row.getByText('Đã nhắc')).toBeVisible();
 

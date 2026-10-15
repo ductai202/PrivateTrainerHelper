@@ -6,6 +6,8 @@ import type { SessionLite } from '@/lib/domain/types';
 import { vnDateLabel, vnDayRange } from '@/lib/time';
 import ZaloButton from '@/components/ZaloButton';
 import MeasurementChart from '@/components/MeasurementChart';
+import { addressFor } from '@/lib/domain/address';
+import { personalLinkMessage } from '@/lib/domain/messages';
 import { linkSecret, signStudentToken } from '@/lib/links/token';
 import { lateCancelCount } from '@/lib/domain/reliability';
 import {
@@ -71,6 +73,15 @@ export default async function StudentPage({
     }
   }
 
+  const { data: ptRow } = await supabase
+    .from('members')
+    .select('gender, birth_year')
+    .eq('id', s.pt_id)
+    .maybeSingle();
+  const address = addressFor(
+    { gender: ptRow?.gender ?? null, birthYear: ptRow?.birth_year ?? null },
+    { gender: s.gender, birthYear: s.birth_year, fullName: s.full_name },
+  );
   const h = await headers();
   const origin =
     process.env.NEXT_PUBLIC_APP_URL ?? `${h.get('x-forwarded-proto') ?? 'http'}://${h.get('host')}`;
@@ -147,7 +158,7 @@ export default async function StudentPage({
               <div className="flex flex-wrap gap-2">
                 <ZaloButton
                   phone={s.phone}
-                  message={`Chào ${s.full_name}, đây là link xem lịch tập và đổi giờ của bạn: ${personalLink}`}
+                  message={personalLinkMessage({ address, link: personalLink })}
                   label="Gửi link qua Zalo"
                 />
                 <form action={regenerateStudentLink.bind(null, s.id)}>

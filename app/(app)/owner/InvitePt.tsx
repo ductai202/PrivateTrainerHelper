@@ -11,6 +11,13 @@ export default function InvitePt() {
       <h2 className="font-medium">Tạo tài khoản PT</h2>
       <input name="display_name" placeholder="Tên PT" className={input} />
       <input name="email" type="email" placeholder="Email PT" className={input} />
+      <select name="gender" aria-label="Giới tính PT" defaultValue="" className={input}>
+        <option value="">Giới tính (chưa chọn)</option>
+        <option value="male">Nam</option>
+        <option value="female">Nữ</option>
+        <option value="other">Khác</option>
+      </select>
+      <input name="birth_year" inputMode="numeric" placeholder="Năm sinh PT" className={input} />
       {state?.error && (
         <p role="alert" className="text-red-600">
           {state.error}

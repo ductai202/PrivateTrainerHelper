@@ -1,6 +1,7 @@
 'use server';
 import { getCurrentMember } from '@/lib/auth/currentMember';
 import { validateNewPassword } from '@/lib/auth/password';
+import { parseProfile } from '@/lib/auth/profile';
 import { createAdminSupabase } from '@/lib/supabase/admin';
 import { createServerSupabase } from '@/lib/supabase/server';
 
@@ -34,4 +35,18 @@ export async function saveReviewTime(
     .eq('id', member.id);
   if (error) return { error: 'Không lưu được giờ nhắc' };
   return { ok: 'Đã lưu giờ nhắc' };
+}
+
+export type ProfileState = { error?: string; ok?: string } | undefined;
+
+export async function saveProfile(_prev: ProfileState, form: FormData): Promise<ProfileState> {
+  const member = await getCurrentMember();
+  const parsed = parseProfile(String(form.get('gender') ?? ''), String(form.get('birth_year') ?? ''));
+  if (!parsed.ok) return { error: parsed.error };
+  const { error } = await createAdminSupabase()
+    .from('members')
+    .update({ gender: parsed.value.gender, birth_year: parsed.value.birthYear })
+    .eq('id', member.id);
+  if (error) return { error: 'Không lưu được thông tin' };
+  return { ok: 'Đã lưu thông tin' };
 }

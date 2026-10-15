@@ -49,6 +49,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"bot_hints": {
+                  Row: {
+                    "chat_id": string,"id": string,"sent_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "chat_id": string,"id"?: string,"sent_at"?: string
+                  }
+                  Update: {
+                    "chat_id"?: string,"id"?: string,"sent_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"bot_link_attempts": {
                   Row: {
                     "attempted_at": string,"chat_id": string,"id": string
@@ -119,14 +133,14 @@ isOneToOne: false
                   ]
                 },"members": {
                   Row: {
-                    "bot_link_code": string,"created_at": string,"display_name": string,"evening_review_time": string,"gym_id": string,"id": string,"role": string,"user_id": string,"zalo_bot_chat_id": string | null
+                    "birth_year": number | null,"bot_link_code": string,"created_at": string,"display_name": string,"evening_review_time": string,"gender": string | null,"gym_id": string,"id": string,"role": string,"user_id": string,"zalo_bot_chat_id": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "bot_link_code"?: string,"created_at"?: string,"display_name": string,"evening_review_time"?: string,"gym_id": string,"id"?: string,"role": string,"user_id": string,"zalo_bot_chat_id"?: string | null
+                    "birth_year"?: number | null,"bot_link_code"?: string,"created_at"?: string,"display_name": string,"evening_review_time"?: string,"gender"?: string | null,"gym_id": string,"id"?: string,"role": string,"user_id": string,"zalo_bot_chat_id"?: string | null
                   }
                   Update: {
-                    "bot_link_code"?: string,"created_at"?: string,"display_name"?: string,"evening_review_time"?: string,"gym_id"?: string,"id"?: string,"role"?: string,"user_id"?: string,"zalo_bot_chat_id"?: string | null
+                    "birth_year"?: number | null,"bot_link_code"?: string,"created_at"?: string,"display_name"?: string,"evening_review_time"?: string,"gender"?: string | null,"gym_id"?: string,"id"?: string,"role"?: string,"user_id"?: string,"zalo_bot_chat_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -432,10 +446,12 @@ isOneToOne: false
                            },
 "current_member":
 { Args: Record<PropertyKey, never>; Returns: {
-              "bot_link_code": string,
+              "birth_year": number | null,
+"bot_link_code": string,
 "created_at": string,
 "display_name": string,
 "evening_review_time": string,
+"gender": string | null,
 "gym_id": string,
 "id": string,
 "role": string,

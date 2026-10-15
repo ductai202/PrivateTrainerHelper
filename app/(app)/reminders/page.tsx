@@ -3,6 +3,7 @@ import { headers } from 'next/headers';
 import { getCurrentMember } from '@/lib/auth/currentMember';
 import { linkSecret, signSessionToken } from '@/lib/links/token';
 import { aiConfigured } from '@/lib/ai/suggestWorkout';
+import { sessionAddress } from '@/lib/data/sessions';
 import { getEveningPrep } from '@/lib/data/prep';
 import { reminderMessage } from '@/lib/domain/messages';
 import { vnDateLabel, vnHHmm } from '@/lib/time';
@@ -71,8 +72,7 @@ export default async function RemindersPage() {
               confirmed={s.status === 'confirmed'}
               workoutHref={aiConfigured() ? `/sessions/${s.id}` : undefined}
               message={reminderMessage({
-                studentName: s.studentName,
-                ptName: s.ptName,
+                address: sessionAddress(s),
                 startAt: s.startAt,
                 link: secret ? `${origin}/c/${signSessionToken(s.id, secret)}` : undefined,
               })}

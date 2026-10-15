@@ -19,7 +19,7 @@ export function parseUpdateId(update: unknown): string | null {
   return typeof id === 'string' || typeof id === 'number' ? String(id) : null;
 }
 
-export type Reply = 'confirm' | 'cancel' | 'code' | 'stop' | 'unknown';
+export type Reply = 'confirm' | 'cancel' | 'code' | 'stop' | 'help' | 'unknown';
 
 const strip = (s: string) =>
   s
@@ -39,6 +39,7 @@ const MAX_WORDS = 4;
  * "bận" is only accepted with its diacritic: without it, it is indistinguishable from "bạn".
  */
 export function classifyReply(text: string): Reply {
+  if (/^[?？]+$/.test(text.trim())) return 'help';
   const t = strip(text);
   const words = t.split(' ').filter(Boolean);
   if (words.length === 0) return 'unknown';
@@ -47,6 +48,7 @@ export function classifyReply(text: string): Reply {
 
   const head = t.replace(/^(em |minh |toi |anh |chi )?(xin )?/, '');
   if (/^(stop|dung|ngat ket noi|huy ket noi)\b/.test(head)) return 'stop';
+  if (/(^| )(help|huong dan|hd|menu)( |$)/.test(head)) return 'help';
   if (/^(huy|cancel)\b/.test(head)) return 'cancel';
   if (/^(ok|oke|xac nhan|dong y|yes)\b/.test(head)) return 'confirm';
 

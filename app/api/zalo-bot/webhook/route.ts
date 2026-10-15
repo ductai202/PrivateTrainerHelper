@@ -5,8 +5,19 @@ import { classifyReply, parseBotUpdate, parseUpdateId } from '@/lib/zalo/intent'
 import { sendBotMessage } from '@/lib/zalo/botClient';
 import { isRateLimited } from '@/lib/zalo/rateLimit';
 import { studentRespond } from '@/lib/links/sessionActions';
+import { linkSecret, signStudentToken } from '@/lib/links/token';
+import { loadStudentAddress } from '@/lib/student/address';
+import { vnDayRange } from '@/lib/time';
+import {
+  botConnectedMessage,
+  botHelpMessage,
+  botReplyMessage,
+  botUnknownMessage,
+} from '@/lib/domain/messages';
 
 export const dynamic = 'force-dynamic';
+
+const HINT_COOLDOWN_MS = 10 * 60_000;
 
 function secretOk(header: string | null): boolean {
   const secret = process.env.ZALO_BOT_WEBHOOK_SECRET;
@@ -14,6 +25,28 @@ function secretOk(header: string | null): boolean {
   const a = Buffer.from(secret);
   const b = Buffer.from(header);
   return a.length === b.length && timingSafeEqual(a, b);
+}
+
+/** At most one hint per chat per 10 minutes, so chatter never becomes a conversation with the bot. */
+async function hintAllowed(db: ReturnType<typeof createAdminSupabase>, chatId: string): Promise<boolean> {
+  const since = new Date(Date.now() - HINT_COOLDOWN_MS).toISOString();
+  const { data } = await db
+    .from('bot_hints')
+    .select('id')
+    .eq('chat_id', chatId)
+    .gt('sent_at', since)
+    .limit(1);
+  if ((data ?? []).length > 0) return false;
+  await db.from('bot_hints').insert({ chat_id: chatId });
+  return true;
+}
+
+/** A fresh personal link (valid until the end of today + 31 days), or null without a secret. */
+function personalLink(studentId: string, version: number, origin: string): string | null {
+  const secret = linkSecret();
+  if (!secret) return null;
+  const exp = new Date(vnDayRange(new Date()).start.getTime() + 31 * 24 * 3600_000);
+  return `${origin}/s/${signStudentToken(studentId, version, exp, secret)}`;
 }
 
 export async function POST(request: Request) {
@@ -54,63 +87,68 @@ export async function POST(request: Request) {
     const code = msg.text.trim().toUpperCase();
     const { data: student } = await db
       .from('students')
-      .select('id, full_name')
+      .select('id')
       .eq('bot_link_code', code)
       .maybeSingle();
-    if (!student) {
-      // not a student code: maybe a PT connecting their own chat
-      const { data: pt } = await db
-        .from('members')
-        .select('id, display_name')
-        .eq('bot_link_code', code)
-        .maybeSingle();
-      if (pt) {
-        const { error: ptError } = await db
-          .from('members')
-          .update({
-            zalo_bot_chat_id: msg.chatId,
-            bot_link_code: randomBytes(3).toString('hex').toUpperCase(),
-          })
-          .eq('id', pt.id);
-        if (ptError) {
-          await sendBotMessage(msg.chatId, 'Không kết nối được. Chat này có thể đã kết nối với tài khoản khác.');
-          return NextResponse.json({ ok: true, linked: false });
-        }
-        await sendBotMessage(
-          msg.chatId,
-          `Đã kết nối cho PT ${pt.display_name}. Khi học viên xác nhận, huỷ hoặc xin đổi giờ, bạn sẽ nhận tin ở đây.`,
-        );
-        return NextResponse.json({ ok: true, linked: true, role: 'pt' });
+
+    if (student) {
+      const { error: linkError } = await db
+        .from('students')
+        .update({
+          zalo_bot_chat_id: msg.chatId,
+          // single-use: rotate so a leaked or old code cannot rebind the chat
+          bot_link_code: randomBytes(3).toString('hex').toUpperCase(),
+        })
+        .eq('id', student.id);
+      if (linkError) {
+        await sendBotMessage(msg.chatId, 'Không kết nối được. Chat này có thể đã kết nối với học viên khác.');
+        return NextResponse.json({ ok: true, linked: false });
       }
+      const address = await loadStudentAddress(db, student.id);
+      await sendBotMessage(
+        msg.chatId,
+        address
+          ? botConnectedMessage(address)
+          : 'Đã kết nối với PT. Trả lời "OK" để xác nhận hoặc "Bận" nếu không tập được nhé.',
+      );
+      return NextResponse.json({ ok: true, linked: true });
     }
-    if (!student) {
-      await sendBotMessage(msg.chatId, 'Mã kết nối không đúng. Bạn nhờ PT gửi lại mã giúp mình nhé.');
-      return NextResponse.json({ ok: true, linked: false });
+
+    // not a student code: maybe a PT connecting their own chat
+    const { data: pt } = await db
+      .from('members')
+      .select('id, display_name')
+      .eq('bot_link_code', code)
+      .maybeSingle();
+    if (pt) {
+      const { error: ptError } = await db
+        .from('members')
+        .update({
+          zalo_bot_chat_id: msg.chatId,
+          bot_link_code: randomBytes(3).toString('hex').toUpperCase(),
+        })
+        .eq('id', pt.id);
+      if (ptError) {
+        await sendBotMessage(msg.chatId, 'Không kết nối được. Chat này có thể đã kết nối với tài khoản khác.');
+        return NextResponse.json({ ok: true, linked: false });
+      }
+      await sendBotMessage(
+        msg.chatId,
+        `Đã kết nối cho PT ${pt.display_name}. Khi học viên xác nhận, huỷ hoặc xin đổi giờ, bạn sẽ nhận tin ở đây.`,
+      );
+      return NextResponse.json({ ok: true, linked: true, role: 'pt' });
     }
-    const { error: linkError } = await db
-      .from('students')
-      .update({
-        zalo_bot_chat_id: msg.chatId,
-        // single-use: rotate so a leaked or old code cannot rebind the chat
-        bot_link_code: randomBytes(3).toString('hex').toUpperCase(),
-      })
-      .eq('id', student.id);
-    if (linkError) {
-      await sendBotMessage(msg.chatId, 'Không kết nối được. Chat này có thể đã kết nối với học viên khác.');
-      return NextResponse.json({ ok: true, linked: false });
-    }
-    await sendBotMessage(
-      msg.chatId,
-      `Đã kết nối với PT, chào ${student.full_name}! Khi nhận nhắc lịch bạn trả lời "OK" để xác nhận hoặc "Bận" để báo không tập được.`,
-    );
-    return NextResponse.json({ ok: true, linked: true });
+
+    await sendBotMessage(msg.chatId, 'Mã kết nối không đúng. Bạn nhờ PT gửi lại mã giúp mình nhé.');
+    return NextResponse.json({ ok: true, linked: false });
   }
 
   const { data: student } = await db
     .from('students')
-    .select('id')
+    .select('id, link_version')
     .eq('zalo_bot_chat_id', msg.chatId)
     .maybeSingle();
+
   if (!student) {
     const { data: pt } = await db
       .from('members')
@@ -123,22 +161,41 @@ export async function POST(request: Request) {
         await sendBotMessage(msg.chatId, 'Đã ngắt kết nối. Lấy mã mới trong Cài đặt của app nếu muốn kết nối lại.');
         return NextResponse.json({ ok: true, disconnected: true, role: 'pt' });
       }
-      await sendBotMessage(msg.chatId, 'Mình sẽ báo cho bạn ở đây khi học viên xác nhận, huỷ hoặc xin đổi giờ. Nhắn "stop" để ngắt kết nối.');
+      await sendBotMessage(
+        msg.chatId,
+        'Mình sẽ báo cho bạn ở đây khi học viên xác nhận, huỷ hoặc xin đổi giờ. Nhắn "stop" để ngắt kết nối.',
+      );
       return NextResponse.json({ ok: true, role: 'pt' });
     }
+    if (!(await hintAllowed(db, msg.chatId))) return NextResponse.json({ ok: true, muted: true });
     await sendBotMessage(msg.chatId, 'Bạn nhập mã kết nối PT đã gửi để bắt đầu nhé.');
     return NextResponse.json({ ok: true, linked: false });
   }
 
+  const address = (await loadStudentAddress(db, student.id)) ?? {
+    you: 'bạn' as const,
+    me: 'mình' as const,
+    name: '',
+  };
+
   if (kind === 'stop') {
     await db.from('students').update({ zalo_bot_chat_id: null }).eq('id', student.id);
-    await sendBotMessage(msg.chatId, 'Đã ngắt kết nối. Bạn nhắn mã mới của PT nếu muốn kết nối lại.');
+    await sendBotMessage(msg.chatId, 'Đã ngắt kết nối. Bạn nhắn mã mới của PT nếu muốn kết nối lại nhé.');
     return NextResponse.json({ ok: true, disconnected: true });
   }
 
+  if (kind === 'help') {
+    await sendBotMessage(
+      msg.chatId,
+      botHelpMessage(address, personalLink(student.id, student.link_version, origin)),
+    );
+    return NextResponse.json({ ok: true, help: true });
+  }
+
   if (kind === 'unknown') {
-    await sendBotMessage(msg.chatId, 'Trả lời "OK" để xác nhận hoặc "Bận" nếu không tập được nhé.');
-    return NextResponse.json({ ok: true });
+    if (!(await hintAllowed(db, msg.chatId))) return NextResponse.json({ ok: true, muted: true });
+    await sendBotMessage(msg.chatId, botUnknownMessage(address));
+    return NextResponse.json({ ok: true, hint: true });
   }
 
   // act only on the session this student was last asked about via the bot
@@ -153,7 +210,10 @@ export async function POST(request: Request) {
     .limit(1)
     .maybeSingle();
   if (!lastAsked?.session_id) {
-    await sendBotMessage(msg.chatId, 'Hiện chưa có buổi nào cần xác nhận.');
+    await sendBotMessage(
+      msg.chatId,
+      `Hiện chưa có buổi nào cần xác nhận nha ${address.you}. Nhắn "?" để xem hướng dẫn.`,
+    );
     return NextResponse.json({ ok: true });
   }
 
@@ -163,13 +223,6 @@ export async function POST(request: Request) {
     '',
     origin,
   );
-  await sendBotMessage(
-    msg.chatId,
-    result === 'confirmed'
-      ? 'Đã xác nhận buổi tập. Hẹn gặp bạn!'
-      : result === 'cancelled'
-        ? 'Đã huỷ buổi tập, PT sẽ được báo.'
-        : 'Không thể thay đổi buổi này.',
-  );
+  await sendBotMessage(msg.chatId, botReplyMessage(address, result));
   return NextResponse.json({ ok: true, result });
 }

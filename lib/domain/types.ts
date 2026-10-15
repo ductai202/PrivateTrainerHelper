@@ -23,6 +23,8 @@ export interface FillInCandidate {
   studentId: string;
   name: string;
   phone: string;
+  gender?: string | null;
+  birthYear?: number | null;
   remaining: number;
   availability: AvailabilityWindow[];
   sessionsOnDay: number;

@@ -2,6 +2,7 @@
 import { revalidatePath } from 'next/cache';
 import { getCurrentMember } from '@/lib/auth/currentMember';
 import { generateTempPassword } from '@/lib/auth/password';
+import { parseProfile } from '@/lib/auth/profile';
 import { createAdminSupabase } from '@/lib/supabase/admin';
 
 export type CreatePtState = { error?: string; ok?: string; tempPassword?: string } | undefined;
@@ -17,6 +18,8 @@ export async function createPt(_prev: CreatePtState, form: FormData): Promise<Cr
   const email = String(form.get('email') ?? '').trim().toLowerCase();
   const displayName = String(form.get('display_name') ?? '').trim();
   if (!email || !displayName) return { error: 'Vui lòng nhập email và tên' };
+  const profile = parseProfile(String(form.get('gender') ?? ''), String(form.get('birth_year') ?? ''));
+  if (!profile.ok) return { error: profile.error };
 
   const admin = createAdminSupabase();
   const tempPassword = generateTempPassword();
@@ -33,6 +36,8 @@ export async function createPt(_prev: CreatePtState, form: FormData): Promise<Cr
     user_id: data.user.id,
     display_name: displayName,
     role: 'pt',
+    gender: profile.value.gender,
+    birth_year: profile.value.birthYear,
   });
   if (insertError) {
     await admin.auth.admin.deleteUser(data.user.id);

@@ -2,6 +2,7 @@ import { getCurrentMember } from '@/lib/auth/currentMember';
 import { logout } from '@/app/login/actions';
 import { createServerSupabase } from '@/lib/supabase/server';
 import ChangePassword from './ChangePassword';
+import ProfileForm from './ProfileForm';
 import ReviewTime from './ReviewTime';
 import EnablePush from './EnablePush';
 
@@ -10,10 +11,10 @@ export default async function SettingsPage() {
   const supabase = await createServerSupabase();
   const { data: row } = await supabase
     .from('members')
-    .select('evening_review_time, zalo_bot_chat_id, bot_link_code')
+    .select('evening_review_time, zalo_bot_chat_id, bot_link_code, gender, birth_year')
     .eq('id', m.id)
     .single();
-  const reviewTime = (row?.evening_review_time ?? '20:00').slice(0, 5);
+  const reviewTime = (row?.evening_review_time ?? '22:00').slice(0, 5);
   const zaloConnected = !!row?.zalo_bot_chat_id;
   const botName = process.env.NEXT_PUBLIC_BOT_NAME ?? 'bot của phòng tập';
   return (
@@ -31,6 +32,12 @@ export default async function SettingsPage() {
         <h2 className="font-medium">Thông báo</h2>
         <EnablePush />
       </section>
+      {m.role === 'pt' && (
+        <section className="space-y-2">
+          <h2 className="font-medium">Thông tin của bạn</h2>
+          <ProfileForm gender={row?.gender ?? null} birthYear={row?.birth_year ?? null} />
+        </section>
+      )}
       {m.role === 'pt' && (
         <section className="space-y-2">
           <h2 className="font-medium">Nhận thông báo qua Zalo</h2>

@@ -13,7 +13,7 @@ export async function getFillInCandidates(
   const { data } = await supabase
     .from('students')
     .select(
-      `id, full_name, phone,
+      `id, full_name, phone, gender, birth_year,
        packages(id, total_sessions, created_at),
        student_availability(weekday, from_time, to_time),
        sessions(id, package_id, status, student_signed, start_at, cancelled_by, cancelled_at),
@@ -47,6 +47,8 @@ export async function getFillInCandidates(
       studentId: s.id,
       name: s.full_name,
       phone: s.phone,
+      gender: s.gender,
+      birthYear: s.birth_year,
       remaining: pkg ? remainingAcrossPackages((s.packages ?? []).map((p) => p.total_sessions), lite) : 0,
       availability,
       onWaitlist: (s.waitlist_entries ?? []).some((w) => w.active),

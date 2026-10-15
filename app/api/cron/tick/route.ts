@@ -6,7 +6,8 @@ import { notifyMember } from '@/lib/notify';
 import { vnDateIso, vnDayRange, vnHHmm } from '@/lib/time';
 import { botConfigured, sendBotMessage } from '@/lib/zalo/botClient';
 import { linkSecret, signSessionToken } from '@/lib/links/token';
-import { reminderMessage } from '@/lib/domain/messages';
+import { addressFor } from '@/lib/domain/address';
+import { botPrecheckMessage, reminderMessage } from '@/lib/domain/messages';
 import type { SessionStatus } from '@/lib/domain/types';
 
 export const dynamic = 'force-dynamic';
@@ -111,7 +112,9 @@ async function sendBotReminders(
   if (!botConfigured() || vnHHmm(now) < (process.env.BOT_REMINDER_FROM ?? '18:00')) return 0;
   const { data } = await db
     .from('sessions')
-    .select('id, student_id, start_at, students!inner(full_name, zalo_bot_chat_id), members!sessions_pt_id_fkey(display_name)')
+    .select(
+      'id, student_id, start_at, students!inner(full_name, gender, birth_year, zalo_bot_chat_id), members!sessions_pt_id_fkey(gender, birth_year)',
+    )
     .neq('status', 'cancelled')
     .gte('start_at', tomorrow.start.toISOString())
     .lt('start_at', tomorrow.end.toISOString());
@@ -132,10 +135,18 @@ async function sendBotReminders(
   let n = 0;
   for (const r of rows) {
     if (already.has(r.id)) continue;
-    const st = r.students as { full_name: string; zalo_bot_chat_id: string };
+    const st = r.students as {
+      full_name: string;
+      gender: string | null;
+      birth_year: number | null;
+      zalo_bot_chat_id: string;
+    };
+    const pt = r.members as { gender: string | null; birth_year: number | null } | null;
     const text = reminderMessage({
-      studentName: st.full_name,
-      ptName: (r.members as { display_name: string } | null)?.display_name ?? '',
+      address: addressFor(
+        { gender: pt?.gender ?? null, birthYear: pt?.birth_year ?? null },
+        { gender: st.gender, birthYear: st.birth_year, fullName: st.full_name },
+      ),
       startAt: new Date(r.start_at),
       link: secret ? `${origin}/c/${signSessionToken(r.id, secret)}` : undefined,
     });
@@ -168,7 +179,9 @@ async function sendBotPrechecks(
   const until = new Date(now.getTime() + BOT_PRECHECK_MINUTES * 60_000);
   const { data } = await db
     .from('sessions')
-    .select('id, gym_id, student_id, start_at, students!inner(full_name, zalo_bot_chat_id)')
+    .select(
+      'id, gym_id, student_id, start_at, students!inner(full_name, gender, birth_year, zalo_bot_chat_id), members!sessions_pt_id_fkey(gender, birth_year)',
+    )
     .in('status', ['scheduled', 'confirmed'])
     .is('bot_precheck_sent_at', null)
     .gt('start_at', now.toISOString())
@@ -176,9 +189,21 @@ async function sendBotPrechecks(
 
   let n = 0;
   for (const r of data ?? []) {
-    const st = r.students as { full_name: string; zalo_bot_chat_id: string | null };
+    const st = r.students as {
+      full_name: string;
+      gender: string | null;
+      birth_year: number | null;
+      zalo_bot_chat_id: string | null;
+    };
     if (!st.zalo_bot_chat_id) continue;
-    const text = `Chào ${st.full_name}, bạn vẫn tập lúc ${vnHHmm(new Date(r.start_at))} chứ? Trả lời "OK" để xác nhận hoặc "Bận" nếu không tập được nhé.`;
+    const pt = r.members as { gender: string | null; birth_year: number | null } | null;
+    const text = botPrecheckMessage({
+      address: addressFor(
+        { gender: pt?.gender ?? null, birthYear: pt?.birth_year ?? null },
+        { gender: st.gender, birthYear: st.birth_year, fullName: st.full_name },
+      ),
+      startAt: new Date(r.start_at),
+    });
     if (!(await sendBotMessage(st.zalo_bot_chat_id, text))) continue;
     await db.from('sessions').update({ bot_precheck_sent_at: now.toISOString() }).eq('id', r.id);
     await db.from('message_log').insert({
