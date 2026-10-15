@@ -21,6 +21,7 @@ export async function updateStudentProfile(studentId: string, form: FormData) {
       goal: str(form, 'goal') || null,
       health_notes: str(form, 'health_notes') || null,
       height_cm: num(form, 'height_cm'),
+      target_per_week: Math.min(7, Math.max(1, Math.round(num(form, 'target_per_week') ?? 2))),
     })
     .eq('id', studentId);
   revalidatePath(`/students/${studentId}`);

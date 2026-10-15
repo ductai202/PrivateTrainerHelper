@@ -100,6 +100,7 @@ export default async function StudentPage({
           <p>Giới tính: {s.gender === 'female' ? 'Nữ' : s.gender === 'male' ? 'Nam' : '—'}</p>
           <p>{remaining === null ? 'Chưa có gói' : `Còn ${remaining} buổi`}</p>
           <p>Mục tiêu: {s.goal ?? '—'}</p>
+          <p>Mục tiêu mỗi tuần: {s.target_per_week} buổi</p>
           <p>Ghi chú sức khoẻ: {s.health_notes ?? '—'}</p>
           <ZaloButton phone={s.phone} />
           <p className="text-sm" data-testid="bot-status">
@@ -112,6 +113,15 @@ export default async function StudentPage({
             <label className="block space-y-1 text-sm">
               <span>Mục tiêu</span>
               <input name="goal" defaultValue={s.goal ?? ''} className={input} />
+            </label>
+            <label className="block space-y-1 text-sm">
+              <span>Số buổi mong muốn mỗi tuần</span>
+              <input
+                name="target_per_week"
+                inputMode="numeric"
+                defaultValue={s.target_per_week}
+                className={input}
+              />
             </label>
             <label className="block space-y-1 text-sm">
               <span>Chấn thương / ghi chú</span>

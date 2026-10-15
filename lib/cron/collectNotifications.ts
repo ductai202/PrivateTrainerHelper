@@ -93,7 +93,7 @@ export function collectNotifications(now: Date, data: CollectData): Notification
       memberId,
       kind: 'tomorrow',
       title: 'Nhắc lịch ngày mai',
-      body: `Bạn có ${left} buổi mai chưa nhắc học viên`,
+      body: `Mai có ${total} buổi, ${left} chưa nhắc học viên`,
       url: '/reminders',
     });
   }

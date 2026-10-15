@@ -100,6 +100,9 @@ export default function StudentForm() {
         <Field label="Số buổi trong gói">
           <input name="total_sessions" inputMode="numeric" className={input} />
         </Field>
+        <Field label="Số buổi mong muốn mỗi tuần">
+          <input name="target_per_week" inputMode="numeric" defaultValue="2" className={input} />
+        </Field>
       </section>
       <section className="space-y-3">
         <h2 className="font-medium">Giờ rảnh</h2>

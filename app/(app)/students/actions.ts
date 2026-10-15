@@ -35,6 +35,7 @@ export async function createStudent(_prev: FormState, form: FormData): Promise<F
       height_cm: num(form, 'height_cm'),
       goal: str(form, 'goal') || null,
       health_notes: str(form, 'health_notes') || null,
+      target_per_week: Math.min(7, Math.max(1, Math.round(num(form, 'target_per_week') ?? 2))),
     })
     .select('id')
     .single();
