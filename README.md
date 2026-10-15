@@ -57,6 +57,6 @@ npm run e2e                # Playwright, viewport 375px
 ## Zalo
 
 - Giai đoạn 1: app soạn sẵn tin, bấm nút để copy và mở cuộc chat Zalo (`https://zalo.me/<SĐT>`).
-- Giai đoạn 2: học viên bấm link xác nhận/huỷ (không cần đăng nhập) — xem `app/c/`.
-- Giai đoạn 3: Zalo Bot (API chính thức) — xem `lib/zalo/` và `app/api/zalo-bot/webhook`.
+- Giai đoạn 2: học viên bấm link xác nhận/huỷ theo buổi (`app/c/`) hoặc dùng link cá nhân `app/s/` để xem số buổi, xin đổi giờ, khai giờ rảnh, đăng ký chờ slot.
+- Giai đoạn 3: Zalo Bot (API chính thức) — xem `lib/zalo/` và `app/api/zalo-bot/webhook`; `node scripts/zalo-bot.mjs check` kiểm tra token, `set-webhook <url>` đăng ký webhook.
 - Không dùng thư viện giả lập Zalo cá nhân (zca-js…) vì có nguy cơ bị khoá tài khoản.

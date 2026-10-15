@@ -27,6 +27,8 @@ export default defineConfig({
         OPENROUTER_API_KEY: 'test-key',
         OPENROUTER_BASE_URL: 'http://127.0.0.1:4010/api/v1',
         AI_MODEL: 'test/model',
+        ZALO_BOT_TOKEN: 'TESTBOT',
+        ZALO_BOT_API_BASE: 'http://127.0.0.1:4010',
         NEXT_PUBLIC_VAPID_PUBLIC_KEY: vapid.publicKey,
         VAPID_PRIVATE_KEY: vapid.privateKey,
         VAPID_SUBJECT: 'mailto:test@example.com',

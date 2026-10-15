@@ -32,8 +32,10 @@ export async function getEveningPrep(
   const tomorrow = vnDayRange(new Date(today.end.getTime() + 1000));
   const ptFilter = member.role === 'owner' ? undefined : member.id;
 
+  // yesterday's sessions the PT forgot to close still need attention
+  const sinceYesterday = { start: new Date(today.start.getTime() - DAY_MS), end: today.end };
   const [todaySessions, tomorrowAll] = await Promise.all([
-    listSessions(today, ptFilter),
+    listSessions(sinceYesterday, ptFilter),
     listSessions(tomorrow, ptFilter),
   ]);
   const unfinishedToday = todaySessions.filter(

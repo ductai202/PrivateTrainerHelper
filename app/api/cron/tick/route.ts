@@ -94,7 +94,8 @@ export async function POST(request: Request) {
     }
   }
   const botSent = await sendBotReminders(db, now, tomorrow, request);
-  return NextResponse.json({ sent, due: due.length, botSent });
+  const botPrechecks = await sendBotPrechecks(db, now);
+  return NextResponse.json({ sent, due: due.length, botSent, botPrechecks });
 }
 
 /** From 18:00 VN, reminds (once) the students of tomorrow's sessions who connected the Zalo Bot. */
@@ -143,6 +144,46 @@ async function sendBotReminders(
       student_id: r.student_id,
       channel: 'bot',
       kind: 'reminder',
+      content: text,
+    });
+    n += 1;
+  }
+  return n;
+}
+
+const BOT_PRECHECK_MINUTES = 120;
+
+/**
+ * Two hours before a session, asks a bot-connected student "still coming?" (once per session).
+ * The question is logged so that their next "OK" / "Bận" is applied to this very session.
+ */
+async function sendBotPrechecks(
+  db: ReturnType<typeof createAdminSupabase>,
+  now: Date,
+): Promise<number> {
+  if (!botConfigured()) return 0;
+  const until = new Date(now.getTime() + BOT_PRECHECK_MINUTES * 60_000);
+  const { data } = await db
+    .from('sessions')
+    .select('id, gym_id, student_id, start_at, students!inner(full_name, zalo_bot_chat_id)')
+    .in('status', ['scheduled', 'confirmed'])
+    .is('bot_precheck_sent_at', null)
+    .gt('start_at', now.toISOString())
+    .lte('start_at', until.toISOString());
+
+  let n = 0;
+  for (const r of data ?? []) {
+    const st = r.students as { full_name: string; zalo_bot_chat_id: string | null };
+    if (!st.zalo_bot_chat_id) continue;
+    const text = `Chào ${st.full_name}, bạn vẫn tập lúc ${vnHHmm(new Date(r.start_at))} chứ? Trả lời "OK" để xác nhận hoặc "Bận" nếu không tập được nhé.`;
+    if (!(await sendBotMessage(st.zalo_bot_chat_id, text))) continue;
+    await db.from('sessions').update({ bot_precheck_sent_at: now.toISOString() }).eq('id', r.id);
+    await db.from('message_log').insert({
+      gym_id: r.gym_id,
+      session_id: r.id,
+      student_id: r.student_id,
+      channel: 'bot',
+      kind: 'precheck',
       content: text,
     });
     n += 1;

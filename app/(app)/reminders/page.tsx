@@ -23,15 +23,15 @@ export default async function RemindersPage() {
       <h1 className="text-xl font-semibold">Chuẩn bị ngày mai · {vnDateLabel(prep.tomorrow.start)}</h1>
 
       <section className="space-y-2">
-        <h2 className="font-medium">Hôm nay chưa cập nhật</h2>
+        <h2 className="font-medium">Buổi chưa cập nhật</h2>
         {prep.unfinishedToday.length === 0 ? (
-          <p className="text-sm text-slate-600">Mọi buổi hôm nay đã cập nhật xong.</p>
+          <p className="text-sm text-slate-600">Mọi buổi hôm nay và hôm qua đã cập nhật xong.</p>
         ) : (
           <ul className="space-y-2">
             {prep.unfinishedToday.map((s) => (
               <li key={s.id} data-testid="unfinished-row">
                 <Link href={`/sessions/${s.id}`} className="block rounded border border-amber-300 bg-amber-50 p-3">
-                  <span className="font-medium">{vnHHmm(s.startAt)}</span> · {s.studentName}
+                  <span className="font-medium">{vnHHmm(s.startAt)}</span> {vnDateLabel(s.startAt)} · {s.studentName}
                   <span className="ml-2 text-xs text-amber-900">Chưa ký / ghi bài tập</span>
                 </Link>
               </li>

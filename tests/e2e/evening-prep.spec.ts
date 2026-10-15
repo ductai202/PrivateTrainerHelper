@@ -36,7 +36,7 @@ test('evening prep lists unfinished sessions, suggestions, and books a suggestio
   await loginAs(page, 'ptA');
   await page.goto('/reminders');
 
-  await expect(page.getByRole('heading', { name: 'Hôm nay chưa cập nhật' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Buổi chưa cập nhật' })).toBeVisible();
   await expect(page.getByTestId('unfinished-row').filter({ hasText: 'Học viên A1' })).toBeVisible();
 
   await expect(page.getByRole('heading', { name: 'Gợi ý xếp lịch' })).toBeVisible();

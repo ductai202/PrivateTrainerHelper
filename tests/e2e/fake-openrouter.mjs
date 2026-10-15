@@ -14,6 +14,7 @@ const PLAN = {
 };
 
 let last = null;
+const sentToBot = [];
 
 const server = http.createServer((req, res) => {
   if (req.method === 'GET' && req.url === '/last-request') {
@@ -39,6 +40,27 @@ const server = http.createServer((req, res) => {
       res.writeHead(200, { 'content-type': 'application/json' });
       res.end(JSON.stringify({ choices: [{ message: { content } }] }));
     });
+    return;
+  }
+  // Zalo Bot sendMessage stand-in: records what the app tried to send
+  if (req.method === 'POST' && req.url === '/botTESTBOT/sendMessage') {
+    let raw = '';
+    req.on('data', (c) => (raw += c));
+    req.on('end', () => {
+      sentToBot.push(JSON.parse(raw));
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
+    });
+    return;
+  }
+  if (req.method === 'GET' && req.url === '/sent-messages') {
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify(sentToBot));
+    return;
+  }
+  if (req.method === 'POST' && req.url === '/reset-sent') {
+    sentToBot.length = 0;
+    res.writeHead(200).end('{}');
     return;
   }
   res.writeHead(404).end();

@@ -1,8 +1,9 @@
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { createAdminSupabase } from '@/lib/supabase/admin';
-import { classifyReply, parseBotUpdate } from '@/lib/zalo/intent';
+import { classifyReply, parseBotUpdate, parseUpdateId } from '@/lib/zalo/intent';
 import { sendBotMessage } from '@/lib/zalo/botClient';
+import { isRateLimited } from '@/lib/zalo/rateLimit';
 import { studentRespond } from '@/lib/links/sessionActions';
 
 export const dynamic = 'force-dynamic';
@@ -19,13 +20,36 @@ export async function POST(request: Request) {
   if (!secretOk(request.headers.get('x-bot-api-secret-token'))) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
-  const msg = parseBotUpdate(await request.json().catch(() => null));
+  const body = await request.json().catch(() => null);
+  const msg = parseBotUpdate(body);
   if (!msg) return NextResponse.json({ ok: true });
 
   const db = createAdminSupabase();
+
+  // Zalo may redeliver an update: handle each delivery id once.
+  const updateId = parseUpdateId(body);
+  if (updateId) {
+    const { error } = await db.from('bot_updates').insert({ update_id: updateId });
+    if (error?.code === '23505') return NextResponse.json({ ok: true, duplicate: true });
+  }
+
   const kind = classifyReply(msg.text);
 
   if (kind === 'code') {
+    // brute-force guard: a handful of tries per chat per 10 minutes
+    const since = new Date(Date.now() - 10 * 60_000).toISOString();
+    const { data: attempts } = await db
+      .from('bot_link_attempts')
+      .select('attempted_at')
+      .eq('chat_id', msg.chatId)
+      .gt('attempted_at', since);
+    const times = (attempts ?? []).map((a) => new Date(a.attempted_at));
+    if (isRateLimited(times, new Date())) {
+      await sendBotMessage(msg.chatId, 'Bạn đã nhập sai nhiều lần, hãy thử lại sau 10 phút nhé.');
+      return NextResponse.json({ ok: true, linked: false, limited: true });
+    }
+    await db.from('bot_link_attempts').insert({ chat_id: msg.chatId });
+
     const { data: student } = await db
       .from('students')
       .select('id, full_name')
@@ -49,7 +73,7 @@ export async function POST(request: Request) {
     }
     await sendBotMessage(
       msg.chatId,
-      `Đã kết nối với PT, chào ${student.full_name}! Khi nhận nhắc lịch bạn trả lời "OK" để xác nhận hoặc "Huỷ" để huỷ buổi.`,
+      `Đã kết nối với PT, chào ${student.full_name}! Khi nhận nhắc lịch bạn trả lời "OK" để xác nhận hoặc "Bận" để báo không tập được.`,
     );
     return NextResponse.json({ ok: true, linked: true });
   }
@@ -63,31 +87,42 @@ export async function POST(request: Request) {
     await sendBotMessage(msg.chatId, 'Bạn nhập mã kết nối PT đã gửi để bắt đầu nhé.');
     return NextResponse.json({ ok: true, linked: false });
   }
+
+  if (kind === 'stop') {
+    await db.from('students').update({ zalo_bot_chat_id: null }).eq('id', student.id);
+    await sendBotMessage(msg.chatId, 'Đã ngắt kết nối. Bạn nhắn mã mới của PT nếu muốn kết nối lại.');
+    return NextResponse.json({ ok: true, disconnected: true });
+  }
+
   if (kind === 'unknown') {
-    await sendBotMessage(msg.chatId, 'Trả lời "OK" để xác nhận hoặc "Huỷ" để huỷ buổi sắp tới nhé.');
+    await sendBotMessage(msg.chatId, 'Trả lời "OK" để xác nhận hoặc "Bận" nếu không tập được nhé.');
     return NextResponse.json({ ok: true });
   }
 
-  // act only on the session this student was last reminded about via the bot
-  const { data: lastReminder } = await db
+  // act only on the session this student was last asked about via the bot
+  const { data: lastAsked } = await db
     .from('message_log')
     .select('session_id')
     .eq('student_id', student.id)
     .eq('channel', 'bot')
-    .eq('kind', 'reminder')
+    .in('kind', ['reminder', 'precheck'])
     .not('session_id', 'is', null)
     .order('sent_at', { ascending: false })
     .limit(1)
     .maybeSingle();
-  const next = lastReminder?.session_id ? { id: lastReminder.session_id } : null;
-  if (!next) {
+  if (!lastAsked?.session_id) {
     await sendBotMessage(msg.chatId, 'Hiện chưa có buổi nào cần xác nhận.');
     return NextResponse.json({ ok: true });
   }
-  const result = await studentRespond(next.id, kind === 'confirm' ? 'confirm' : 'cancel', '');
+
+  const result = await studentRespond(lastAsked.session_id, kind === 'confirm' ? 'confirm' : 'cancel', '');
   await sendBotMessage(
     msg.chatId,
-    result === 'confirmed' ? 'Đã xác nhận buổi tập. Hẹn gặp bạn!' : result === 'cancelled' ? 'Đã huỷ buổi tập, PT sẽ được báo.' : 'Không thể thay đổi buổi này.',
+    result === 'confirmed'
+      ? 'Đã xác nhận buổi tập. Hẹn gặp bạn!'
+      : result === 'cancelled'
+        ? 'Đã huỷ buổi tập, PT sẽ được báo.'
+        : 'Không thể thay đổi buổi này.',
   );
   return NextResponse.json({ ok: true, result });
 }

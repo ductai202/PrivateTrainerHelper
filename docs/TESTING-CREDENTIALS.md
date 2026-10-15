@@ -63,14 +63,16 @@ Không cần khoá hay API. App chỉ mở `https://zalo.me/<số điện thoạ
 - **Cần:** 1 số điện thoại Zalo thật của người nhận (có thể là số của chính bạn) để thử bấm "Nhắc qua Zalo" trên điện thoại, và điện thoại có cài Zalo.
 - Nhập số đó vào một học viên test trong app.
 
-### 3b. Link xác nhận/huỷ cho học viên (đã chạy, Giai đoạn 2)
-Không cần khoá Zalo. Chỉ cần `LINK_SECRET` (chuỗi ngẫu nhiên, mình tự sinh trong `.env.local`) và địa chỉ app mà điện thoại truy cập được (URL Vercel, hoặc ngrok/Cloudflare Tunnel khi test local).
+### 3b. Link cho học viên (đã chạy, Giai đoạn 2)
+Không cần khoá Zalo. Chỉ cần `LINK_SECRET` (chuỗi ngẫu nhiên, mình tự sinh trong `.env.local`) và địa chỉ app mà điện thoại truy cập được (URL Vercel, hoặc ngrok/Cloudflare Tunnel khi test local). Có hai loại link: theo buổi (`/c/...`, xác nhận/huỷ) và cá nhân (`/s/...`, xem số buổi, xin đổi giờ, khai giờ rảnh, chờ slot).
 
 ### 3c. Zalo Bot tự nhắn (Giai đoạn 3, **chưa thử với Zalo thật**)
 Cần cho: bot tự nhắc lịch, học viên trả lời OK/Huỷ.
 - **Cần:** tài khoản Zalo của bạn để tạo bot trên Zalo Bot Platform, **bot token**, một **webhook secret** bạn tự đặt (8–256 ký tự), và 1 tài khoản Zalo thứ hai để đóng vai học viên.
 - Mình **chưa xác minh được trang chính thức** của Zalo Bot Platform. Tài liệu bên thứ ba nhắc tới `bot.zapps.me/docs` và API tại `bot-api.zaloplatforms.com`. Hãy tìm "Zalo Bot Platform" / "Zalo Bot Creator", tạo bot, và gửi mình đường link trang tài liệu bạn thấy để mình đối chiếu định dạng `sendMessage` và cách đăng ký webhook.
 - Điền vào `.env.local`: `ZALO_BOT_TOKEN`, `ZALO_BOT_WEBHOOK_SECRET`. Nếu host API khác mặc định thì đặt thêm `ZALO_BOT_API_BASE`.
+- Kiểm tra nhanh token: `node scripts/zalo-bot.mjs check`. Đăng ký webhook: `node scripts/zalo-bot.mjs set-webhook https://<app>/api/zalo-bot/webhook` (tên lệnh theo mô tả của SDK cộng đồng, chưa xác minh với tài liệu chính thức).
+- Luồng thử thật: PT mở hồ sơ học viên để lấy mã → học viên (Zalo thứ hai) nhắn mã cho bot → app xác nhận kết nối → tạo buổi bắt đầu sau ~100 phút rồi gọi `POST /api/cron/tick` → học viên nhận câu hỏi "vẫn tập chứ?" → trả lời "OK" hoặc "Bận" → PT nhận push.
 - Webhook cần URL HTTPS công khai (`https://<app>/api/zalo-bot/webhook`); khi test local dùng ngrok hoặc Cloudflare Tunnel.
 
 Chưa cần: OA (Official Account) hay ZNS. Chỉ cân nhắc khi muốn gửi tin có phí theo số điện thoại.
@@ -111,5 +113,5 @@ VAPID_SUBJECT=mailto:<email của bạn>
 Chạy bằng `npm run test`, `npx supabase test db`, `npm run e2e`:
 
 - **Unit:** giờ VN, số điện thoại, gói buổi, trùng lịch, lấp slot, checklist, quy tắc push (trước buổi 90 phút, giờ nhắc từng PT), gợi ý xếp lịch, mật khẩu, token link, nhận diện trả lời bot, prompt/parse/lỗi của AI.
-- **Integration (database Supabase thật + trình duyệt thật):** đăng nhập, phân quyền PT/owner (RLS), tạo học viên, lịch, huỷ 1 chạm, đổi giờ, mở lại buổi, checklist, nhắc lịch, link học viên, webhook bot, route cron (đánh dấu precheck, giờ nhắc, chống gửi trùng), gợi ý xếp lịch và đặt buổi, AI qua máy chủ giả lập OpenRouter (kiểm tra cả nội dung gửi đi không chứa SĐT).
+- **Integration (database Supabase thật + trình duyệt thật + Zalo Bot/OpenRouter giả lập):** đăng nhập, phân quyền PT/owner (RLS), tạo học viên, lịch, huỷ 1 chạm, đổi giờ, mở lại buổi, checklist, nhắc lịch, link học viên, webhook bot, route cron (đánh dấu precheck, giờ nhắc, chống gửi trùng), gợi ý xếp lịch và đặt buổi, AI qua máy chủ giả lập OpenRouter (kiểm tra cả nội dung gửi đi không chứa SĐT).
 - **Chưa test tự động được:** push thật tới điện thoại, chất lượng câu trả lời của model, Zalo/Zalo Bot thật, `pg_cron` trên Supabase cloud, cài PWA trên iPhone/Android.

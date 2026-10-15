@@ -8,8 +8,8 @@ Cập nhật: 2026-10-15. Thứ tự dưới đây là giả thuyết, sẽ đ�
 | Giai đoạn | Nội dung | Trạng thái |
 |---|---|---|
 | 1 | Hồ sơ học viên, gói buổi, lịch, checklist sau buổi, gợi ý lấp slot, nhắc lịch thủ công qua Zalo, push | Code xong, test xanh. **Chưa deploy, chưa thử trên máy PT thật** |
-| 2 | Link xác nhận/huỷ cho học viên (không cần đăng nhập) | Code xong, test xanh. Chưa dùng thật |
-| 3 | Zalo Bot: học viên kết nối bằng mã, bot tự nhắc, trả lời OK/Huỷ | Code xong, test bằng giả lập. **Chưa gọi API Zalo thật**, host/định dạng API lấy từ tài liệu bên thứ ba |
+| 2 | Cổng học viên: link xác nhận/huỷ theo buổi, link cá nhân (xem số buổi, xin đổi giờ, khai giờ rảnh, chờ slot), thu hồi link, theo dõi huỷ sát giờ | Code xong, 13 e2e + unit xanh. Chưa dùng thật |
+| 3 | Zalo Bot: kết nối bằng mã (dùng một lần, giới hạn số lần thử), nhắc 18:00 hôm trước và hỏi lại 2 giờ trước buổi, trả lời OK/Bận, ngắt kết nối, chống xử lý trùng webhook | Code xong, 7 e2e + unit xanh với bot giả lập. **Chưa gọi API Zalo thật**, host/định dạng API lấy từ tài liệu bên thứ ba |
 
 ## Giai đoạn 1.1 — Sẵn sàng pilot (trước khi mời PT)
 
@@ -45,26 +45,24 @@ Quyết định ở đây quyết định các giai đoạn sau, nên không lê
 
 ## Giai đoạn 2 — Học viên tự tương tác qua link
 
-Điều kiện bắt đầu: pilot cho thấy PT thật sự gửi link và học viên bấm.
+**Đã làm** (không chờ pilot): link cá nhân `/s/<token>` (hạn 30 ngày, thu hồi bằng "Tạo link mới"), xin đổi giờ vào slot trống của PT (PT duyệt một chạm), tự khai giờ rảnh, danh sách chờ (được mời trước khi có slot), thu hồi link từng buổi, đếm huỷ sát giờ 30 ngày và dùng để xếp hạng gợi ý lấp slot.
 
-Việc có thể làm (chọn theo phản hồi):
-- Học viên tự khai giờ rảnh qua link (hiện chỉ PT nhập) → gợi ý lấp slot chính xác hơn.
-- Học viên xem số buổi còn lại và lịch sắp tới của mình qua một link cá nhân.
-- Hạn dùng và thu hồi link; giới hạn tần suất.
-- Học viên đề xuất đổi giờ (thay vì chỉ huỷ), PT duyệt.
+Còn lại, chỉ làm khi pilot cho thấy cần:
+
+- Giới hạn tần suất gửi yêu cầu đổi giờ của một học viên.
+- Học viên chọn giờ ngoài khung 06:00–21:00 hoặc ngoài 3 ngày tới.
+- Điểm "độ ổn định" hiển thị cho học viên thay vì chỉ PT thấy.
 
 **Xong khi:** ≥ 50% buổi được học viên xác nhận qua link trong tuần đo.
 
 ## Giai đoạn 3 — Zalo Bot chính thức
 
-Điều kiện bắt đầu: học viên đồng ý nhận tin qua bot; PT mệt vì phải tự gửi từng tin.
+**Đã làm trong code** (kiểm thử với bot giả lập): chống xử lý trùng theo `update_id`, giới hạn 5 lần nhập mã/10 phút/chat, mã kết nối dùng một lần, ngắt kết nối bằng "stop", nhận "Bận" (chỉ khi có dấu, để không nhầm với "bạn"), và bot hỏi lại học viên 2 giờ trước buổi. Trả lời luôn áp dụng cho đúng buổi vừa được hỏi.
 
-Việc cần làm trước khi bật thật:
-1. Đọc tài liệu chính thức của Zalo Bot Platform: xác nhận host, định dạng `sendMessage`, cách đăng ký webhook, header bí mật (`ZALO_BOT_API_BASE`, `lib/zalo/botClient.ts`).
+Việc còn lại trước khi bật thật (cần tài khoản Zalo của bạn):
+1. Đọc tài liệu chính thức của Zalo Bot Platform: xác nhận host, định dạng `sendMessage`, cách đăng ký webhook, header bí mật (`ZALO_BOT_API_BASE`, `lib/zalo/botClient.ts`). Có sẵn `node scripts/zalo-bot.mjs check` và `set-webhook` để thử nhanh.
 2. Tạo bot, đặt `ZALO_BOT_TOKEN` + `ZALO_BOT_WEBHOOK_SECRET`, đăng ký webhook tới `/api/zalo-bot/webhook`.
-3. Chống xử lý trùng khi Zalo gửi lại webhook (lưu `update_id`).
-4. Thử với 1–2 học viên thật trước; đo tỉ lệ học viên kết nối bot.
-5. Rate limit nhập mã kết nối; đưa ra cách ngắt kết nối.
+3. Thử với 1–2 học viên thật trước; đo tỉ lệ học viên kết nối bot.
 
 Phương án thay thế/bổ sung nếu học viên không chịu nhắn bot: ZNS (tin template theo số điện thoại, ~250–360đ/tin, cần duyệt template và OA đã xác thực). Chỉ cân nhắc khi gym chấp nhận trả phí.
 
