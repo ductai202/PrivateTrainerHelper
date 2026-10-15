@@ -6,6 +6,7 @@ export interface SessionRow extends SessionLite {
   studentPhone: string;
   ptName: string;
   cancelReason: string | null;
+  cancelledBy: 'student' | 'pt' | null;
   workoutContent: string | null;
 }
 
@@ -20,13 +21,14 @@ type Raw = {
   student_signed: boolean;
   workout_logged: boolean;
   cancel_reason: string | null;
+  cancelled_by: string | null;
   workout_content: string | null;
   students: { full_name: string; phone: string } | null;
   members: { display_name: string } | null;
 };
 
 export const SESSION_SELECT = `id, pt_id, student_id, package_id, start_at, end_at, status,
-  student_signed, workout_logged, cancel_reason, workout_content,
+  student_signed, workout_logged, cancel_reason, cancelled_by, workout_content,
   students(full_name, phone), members!sessions_pt_id_fkey(display_name)`;
 
 export function toSessionRow(r: Raw): SessionRow {
@@ -41,6 +43,7 @@ export function toSessionRow(r: Raw): SessionRow {
     studentSigned: r.student_signed,
     workoutLogged: r.workout_logged,
     cancelReason: r.cancel_reason,
+    cancelledBy: r.cancelled_by === 'student' || r.cancelled_by === 'pt' ? r.cancelled_by : null,
     workoutContent: r.workout_content,
     studentName: r.students?.full_name ?? '',
     studentPhone: r.students?.phone ?? '',

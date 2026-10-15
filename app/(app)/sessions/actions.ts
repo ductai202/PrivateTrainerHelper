@@ -102,7 +102,12 @@ export async function cancelSession(sessionId: string, reason: string) {
   const supabase = await createServerSupabase();
   await supabase
     .from('sessions')
-    .update({ status: 'cancelled', cancel_reason: reason || null })
+    .update({
+      status: 'cancelled',
+      cancel_reason: reason || null,
+      cancelled_by: 'pt',
+      cancelled_at: new Date().toISOString(),
+    })
     .eq('id', sessionId);
   revalidatePath('/', 'layout');
 }

@@ -5,6 +5,7 @@ import { vnDateIso, vnHHmm } from '@/lib/time';
 export interface NotifSession extends SessionLite {
   checklistPushedAt: Date | null;
   checklistRemindedAt: Date | null;
+  precheckPushedAt: Date | null;
   studentName: string;
 }
 
@@ -13,19 +14,22 @@ export interface CollectData {
   tomorrowCountByPt: Record<string, number>;
   remindedTomorrowByPt: Record<string, number>;
   pushLog: { memberId: string; kind: string; forDate: string }[];
+  /** 'HH:mm' (VN) at which each PT wants the evening review; 20:00 when absent. */
+  reviewTimeByPt?: Record<string, string>;
 }
 
 export interface Notification {
   memberId: string;
-  kind: 'checklist' | 'checklist_eod' | 'tomorrow';
+  kind: 'checklist' | 'checklist_eod' | 'tomorrow' | 'precheck';
   title: string;
   body: string;
   url: string;
   sessionId?: string;
 }
 
+export const PRECHECK_MINUTES = 90;
+export const DEFAULT_REVIEW_TIME = '20:00';
 const EOD_FROM = '21:00';
-const TOMORROW_FROM = '20:00';
 
 /** Pure: decides which pushes are due at `now`. The caller persists the dedupe markers. */
 export function collectNotifications(now: Date, data: CollectData): Notification[] {
@@ -42,6 +46,19 @@ export function collectNotifications(now: Date, data: CollectData): Notification
         kind: 'checklist',
         title: `Buổi với ${s.studentName} đã xong`,
         body: 'Kiểm tra: đã ký buổi? đã ghi bài tập?',
+        url: `/sessions/${s.id}`,
+        sessionId: s.id,
+      });
+    }
+
+    const open = s.status === 'scheduled' || s.status === 'confirmed';
+    const minutesToStart = (s.startAt.getTime() - now.getTime()) / 60000;
+    if (open && s.precheckPushedAt === null && minutesToStart > 0 && minutesToStart <= PRECHECK_MINUTES) {
+      out.push({
+        memberId: s.ptId,
+        kind: 'precheck',
+        title: `${vnHHmm(s.startAt)} với ${s.studentName} — vẫn tập chứ?`,
+        body: 'Mở để xác nhận hoặc báo học viên bận',
         url: `/sessions/${s.id}`,
         sessionId: s.id,
       });
@@ -67,18 +84,18 @@ export function collectNotifications(now: Date, data: CollectData): Notification
     }
   }
 
-  if (clock >= TOMORROW_FROM) {
-    for (const [memberId, total] of Object.entries(data.tomorrowCountByPt)) {
-      const left = total - (data.remindedTomorrowByPt[memberId] ?? 0);
-      if (left <= 0 || logged(memberId, 'tomorrow')) continue;
-      out.push({
-        memberId,
-        kind: 'tomorrow',
-        title: 'Nhắc lịch ngày mai',
-        body: `Bạn có ${left} buổi mai chưa nhắc học viên`,
-        url: '/reminders',
-      });
-    }
+  for (const [memberId, total] of Object.entries(data.tomorrowCountByPt)) {
+    const from = data.reviewTimeByPt?.[memberId] ?? DEFAULT_REVIEW_TIME;
+    if (clock < from) continue;
+    const left = total - (data.remindedTomorrowByPt[memberId] ?? 0);
+    if (left <= 0 || logged(memberId, 'tomorrow')) continue;
+    out.push({
+      memberId,
+      kind: 'tomorrow',
+      title: 'Nhắc lịch ngày mai',
+      body: `Bạn có ${left} buổi mai chưa nhắc học viên`,
+      url: '/reminders',
+    });
   }
   return out;
 }

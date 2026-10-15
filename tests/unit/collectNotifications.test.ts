@@ -3,7 +3,14 @@ import { collectNotifications, type NotifSession } from '@/lib/cron/collectNotif
 import { at, mk } from './helpers';
 
 function ns(p: Partial<NotifSession> = {}): NotifSession {
-  return { ...mk(p), checklistPushedAt: null, checklistRemindedAt: null, studentName: 'Lan', ...p };
+  return {
+    ...mk(p),
+    checklistPushedAt: null,
+    checklistRemindedAt: null,
+    precheckPushedAt: null,
+    studentName: 'Lan',
+    ...p,
+  };
 }
 const base = { sessions: [], tomorrowCountByPt: {}, remindedTomorrowByPt: {}, pushLog: [] };
 

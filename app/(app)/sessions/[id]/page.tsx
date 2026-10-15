@@ -3,9 +3,12 @@ import { SESSION_SELECT, toSessionRow } from '@/lib/data/sessions';
 import { getFillInCandidates } from '@/lib/data/fillIns';
 import { suggestFillIns } from '@/lib/domain/fillIns';
 import { fillInInviteMessage } from '@/lib/domain/messages';
+import { QUICK_REASONS } from '@/lib/domain/reasons';
 import { vnDateLabel, vnHHmm } from '@/lib/time';
 import { cancelSession, markOutcome, saveWorkout, setSigned } from '../actions';
+import { confirmSession, reopenSession, studentCancelled } from '../lateChanges';
 import FillInInvite from './FillInInvite';
+import RescheduleForm from './RescheduleForm';
 
 const STATUS_LABEL: Record<string, string> = {
   scheduled: 'Chưa diễn ra',
@@ -17,8 +20,15 @@ const STATUS_LABEL: Record<string, string> = {
 const input = 'min-h-12 w-full rounded border px-3';
 const btn = 'min-h-12 rounded border px-4';
 
-export default async function SessionPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function SessionPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ reschedule?: string }>;
+}) {
   const { id } = await params;
+  const sp = await searchParams;
   const supabase = await createServerSupabase();
   const valid = /^[0-9a-f-]{36}$/i.test(id);
   const { data } = valid
@@ -27,6 +37,8 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
   if (!data) return <main className="p-4">Không tìm thấy buổi tập</main>;
   const s = toSessionRow(data as unknown as Parameters<typeof toSessionRow>[0]);
 
+  const now = new Date();
+  const upcoming = (s.status === 'scheduled' || s.status === 'confirmed') && s.startAt > now;
   const candidates =
     s.status === 'cancelled'
       ? suggestFillIns(
@@ -44,19 +56,58 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
           {vnDateLabel(s.startAt)} · {vnHHmm(s.startAt)}–{vnHHmm(s.endAt)}
         </p>
         <p data-testid="status">{STATUS_LABEL[s.status]}</p>
-        {s.cancelReason && <p className="text-sm text-slate-600">Lý do huỷ: {s.cancelReason}</p>}
+        {s.cancelReason && (
+          <p className="text-sm text-slate-600">
+            Lý do huỷ: {s.cancelReason}
+            {s.cancelledBy === 'student' && ' (học viên báo)'}
+            {s.cancelledBy === 'pt' && ' (PT huỷ)'}
+          </p>
+        )}
       </header>
+
+      {upcoming && (
+        <section className="space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            {s.status === 'scheduled' ? (
+              <form action={confirmSession.bind(null, s.id)}>
+                <button className="min-h-14 w-full rounded bg-teal-700 font-medium text-white">
+                  Vẫn tập
+                </button>
+              </form>
+            ) : (
+              <p className="flex min-h-14 items-center justify-center rounded border border-blue-300 bg-blue-50 text-sm">
+                Đã xác nhận
+              </p>
+            )}
+            <form action={studentCancelled.bind(null, s.id, QUICK_REASONS.busy)}>
+              <button className="min-h-14 w-full rounded border font-medium text-red-700">
+                Học viên báo bận
+              </button>
+            </form>
+          </div>
+          {sp.reschedule === '1' ? (
+            <RescheduleForm sessionId={s.id} defaultDate={date} defaultTime={vnHHmm(s.startAt)} />
+          ) : (
+            <a href={`/sessions/${s.id}?reschedule=1`} className="inline-block min-h-11 text-sm underline">
+              Đổi giờ buổi này
+            </a>
+          )}
+        </section>
+      )}
 
       {s.status !== 'cancelled' && (
         <section className="space-y-4">
           <div className="space-y-2">
             <h2 className="font-medium">Kết quả buổi</h2>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <form action={markOutcome.bind(null, s.id, 'done')}>
                 <button className={btn}>Hoàn thành</button>
               </form>
               <form action={markOutcome.bind(null, s.id, 'no_show')}>
                 <button className={btn}>Vắng</button>
+              </form>
+              <form action={studentCancelled.bind(null, s.id, QUICK_REASONS.student)}>
+                <button className={btn}>Học viên huỷ</button>
               </form>
             </div>
           </div>
@@ -108,6 +159,9 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
 
       {s.status === 'cancelled' && (
         <section className="space-y-3">
+          <form action={reopenSession.bind(null, s.id)}>
+            <button className={btn}>Mở lại buổi</button>
+          </form>
           <h2 className="font-medium">Gợi ý lấp slot</h2>
           {candidates.length === 0 ? (
             <p className="text-slate-600">Không có học viên phù hợp khung giờ này</p>

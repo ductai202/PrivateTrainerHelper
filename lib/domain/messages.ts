@@ -7,7 +7,7 @@ export function reminderMessage(p: {
   link?: string;
 }): string {
   const base = `Chào ${p.studentName}, nhắc lịch tập với PT ${p.ptName} lúc ${vnHHmm(p.startAt)} ${vnDateLabel(p.startAt)}. Bạn xác nhận giúp mình nhé!`;
-  return p.link ? `${base} Xác nhận hoặc huỷ tại: ${p.link}` : base;
+  return p.link ? `${base} Nếu bận, bấm link để báo PT: ${p.link}` : base;
 }
 
 export function fillInInviteMessage(p: {

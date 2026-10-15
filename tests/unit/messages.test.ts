@@ -11,6 +11,7 @@ describe('messages', () => {
       }),
     ).toBe('Chào Lan, nhắc lịch tập với PT Tài lúc 08:30 Thứ 3, 20/10. Bạn xác nhận giúp mình nhé!');
   });
+
   it('fill-in copy', () => {
     expect(
       fillInInviteMessage({
@@ -24,7 +25,7 @@ describe('messages', () => {
 });
 
 describe('reminder link', () => {
-  it('appends the confirm/cancel link when given', () => {
+  it('tells the student to use the link when they are busy', () => {
     expect(
       reminderMessage({
         studentName: 'Lan',
@@ -33,7 +34,7 @@ describe('reminder link', () => {
         link: 'https://app.test/c/abc',
       }),
     ).toBe(
-      'Chào Lan, nhắc lịch tập với PT Tài lúc 08:30 Thứ 3, 20/10. Bạn xác nhận giúp mình nhé! Xác nhận hoặc huỷ tại: https://app.test/c/abc',
+      'Chào Lan, nhắc lịch tập với PT Tài lúc 08:30 Thứ 3, 20/10. Bạn xác nhận giúp mình nhé! Nếu bận, bấm link để báo PT: https://app.test/c/abc',
     );
   });
 });

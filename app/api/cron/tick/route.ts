@@ -23,7 +23,7 @@ export async function POST(request: Request) {
 
   const { data: todays } = await db
     .from('sessions')
-    .select('id, pt_id, student_id, package_id, start_at, end_at, status, student_signed, workout_logged, checklist_pushed_at, checklist_reminded_at, students(full_name)')
+    .select('id, pt_id, student_id, package_id, start_at, end_at, status, student_signed, workout_logged, checklist_pushed_at, checklist_reminded_at, precheck_pushed_at, students(full_name)')
     .gte('start_at', today.start.toISOString())
     .lt('start_at', today.end.toISOString());
 
@@ -39,6 +39,7 @@ export async function POST(request: Request) {
     workoutLogged: r.workout_logged,
     checklistPushedAt: r.checklist_pushed_at ? new Date(r.checklist_pushed_at) : null,
     checklistRemindedAt: r.checklist_reminded_at ? new Date(r.checklist_reminded_at) : null,
+    precheckPushedAt: r.precheck_pushed_at ? new Date(r.precheck_pushed_at) : null,
     studentName: (r.students as { full_name: string } | null)?.full_name ?? '',
   }));
 
@@ -63,7 +64,12 @@ export async function POST(request: Request) {
   const forDate = vnDateIso(now);
   const { data: log } = await db.from('push_log').select('member_id, kind, for_date').eq('for_date', forDate);
 
+  const { data: pts } = await db.from('members').select('id, evening_review_time').eq('role', 'pt');
+  const reviewTimeByPt: Record<string, string> = {};
+  for (const p of pts ?? []) reviewTimeByPt[p.id] = p.evening_review_time.slice(0, 5);
+
   const due = collectNotifications(now, {
+    reviewTimeByPt,
     sessions,
     tomorrowCountByPt,
     remindedTomorrowByPt,
@@ -75,6 +81,8 @@ export async function POST(request: Request) {
     sent += await sendPush(n.memberId, { title: n.title, body: n.body, url: n.url });
     if (n.kind === 'checklist' && n.sessionId) {
       await db.from('sessions').update({ checklist_pushed_at: now.toISOString() }).eq('id', n.sessionId);
+    } else if (n.kind === 'precheck' && n.sessionId) {
+      await db.from('sessions').update({ precheck_pushed_at: now.toISOString() }).eq('id', n.sessionId);
     } else {
       await db.from('push_log').upsert(
         { member_id: n.memberId, kind: n.kind, for_date: forDate },
