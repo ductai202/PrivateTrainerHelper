@@ -10,6 +10,7 @@ export interface StudentRow {
   remaining: number | null;
   expiresOn: string | null;
   expiringSoon: boolean;
+  botConnected: boolean;
 }
 
 export async function listStudents(): Promise<StudentRow[]> {
@@ -17,7 +18,7 @@ export async function listStudents(): Promise<StudentRow[]> {
   const { data } = await supabase
     .from('students')
     .select(
-      `id, full_name, phone, members!students_pt_id_fkey(display_name),
+      `id, full_name, phone, zalo_bot_chat_id, members!students_pt_id_fkey(display_name),
        packages(id, total_sessions, expires_on, created_at),
        sessions(package_id, status, student_signed)`,
     )
@@ -46,6 +47,7 @@ export async function listStudents(): Promise<StudentRow[]> {
       remaining,
       expiresOn,
       expiringSoon: pkg ? expiringSoon : false,
+      botConnected: !!s.zalo_bot_chat_id,
     };
   });
 }

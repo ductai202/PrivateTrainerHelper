@@ -68,7 +68,7 @@ test('checklist: done + signed consumes the package, unsigning restores it', asy
   await expect(page.getByText('Đã ghi bài tập')).toBeVisible();
 
   await page.goto('/today');
-  await expect(page.getByText('Chưa xong')).toHaveCount(0);
+  await expect(page.getByTestId('session-card').getByText('Chưa xong')).toHaveCount(0);
   expect(await remainingFor(page, 'Học viên A1')).toBe(before - 1);
 
   await page.goto(`/sessions/${id}`);

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Avatar } from '@/components/ui/Avatar';
 import { headers } from 'next/headers';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { remainingAcrossPackages } from '@/lib/domain/packages';
@@ -25,7 +26,7 @@ const TABS: [Tab, string][] = [
   ['nutrition', 'Dinh dưỡng'],
   ['workouts', 'Bài tập'],
 ];
-const input = 'min-h-12 w-full rounded border px-3';
+const input = 'min-h-12 w-full rounded-xl border border-slate-300 px-3';
 
 function Field({ label, name, type = 'text' }: { label: string; name: string; type?: string }) {
   return (
@@ -123,13 +124,19 @@ export default async function StudentPage({
 
   return (
     <main className="space-y-4 p-4">
-      <h1 className="text-xl font-semibold">{s.full_name}</h1>
-      <nav className="flex gap-2 overflow-x-auto">
+      <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <Avatar name={s.full_name} size={56} />
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-xl font-semibold">{s.full_name}</h1>
+          <p className="text-sm text-slate-600">{s.phone}</p>
+        </div>
+      </div>
+      <nav className="flex gap-2 overflow-x-auto pb-1">
         {TABS.map(([t, label]) => (
           <Link
             key={t}
             href={`/students/${id}?tab=${t}`}
-            className={`min-h-11 rounded px-3 py-2 text-sm ${t === tab ? 'bg-teal-700 text-white' : 'border'}`}
+            className={`inline-flex min-h-11 shrink-0 items-center rounded-full px-4 text-sm font-medium ${t === tab ? 'bg-teal-700 text-white' : 'border border-slate-300 bg-white text-slate-700'}`}
           >
             {label}
           </Link>
@@ -137,7 +144,7 @@ export default async function StudentPage({
       </nav>
 
       {tab === 'profile' && (
-        <section className="space-y-3">
+        <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           {s.birth_year && <p>Tuổi: {new Date().getFullYear() - s.birth_year}</p>}
           <p>Giới tính: {s.gender === 'female' ? 'Nữ' : s.gender === 'male' ? 'Nam' : '—'}</p>
           <p>{remaining === null ? 'Chưa có gói' : `Còn ${remaining} buổi`}</p>
@@ -147,7 +154,7 @@ export default async function StudentPage({
           <p>Ghi chú sức khoẻ: {s.health_notes ?? '—'}</p>
           <ZaloButton phone={s.phone} />
           {personalLink && (
-            <div className="space-y-2 rounded border p-3">
+            <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
               <h2 className="font-medium">Link cá nhân của học viên</h2>
               <p className="text-xs text-slate-600">
                 Học viên tự xem số buổi, đổi giờ, khai giờ rảnh và đăng ký chờ slot. Hết hạn sau 30 ngày.
@@ -202,7 +209,7 @@ export default async function StudentPage({
       )}
 
       {tab === 'progress' && (
-        <section className="space-y-4">
+        <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           {chartData.length > 0 && <MeasurementChart data={chartData} />}
           <form action={addMeasurement.bind(null, id)} className="space-y-3">
             <h2 className="font-medium">Cập nhật tình trạng</h2>
@@ -259,7 +266,7 @@ export default async function StudentPage({
       )}
 
       {tab === 'nutrition' && (
-        <section className="space-y-4">
+        <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div>
             <h2 className="font-medium">Đang áp dụng</h2>
             <p data-testid="current-meal" className="whitespace-pre-wrap">
@@ -289,7 +296,7 @@ export default async function StudentPage({
       )}
 
       {tab === 'workouts' && (
-        <section className="space-y-2">
+        <section className="space-y-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="font-medium">Bài tập đã ghi</h2>
           <ul className="space-y-2">
             {(sessions ?? [])

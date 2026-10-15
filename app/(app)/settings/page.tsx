@@ -42,7 +42,7 @@ export default async function SettingsPage() {
         <section className="space-y-2">
           <h2 className="font-medium">Nhận thông báo qua Zalo</h2>
           {zaloConnected ? (
-            <p className="text-green-700">Đã kết nối Zalo. Nhắn "stop" cho bot nếu muốn ngắt.</p>
+            <p className="text-green-700">Đã kết nối Zalo. Nhắn “stop” cho bot nếu muốn ngắt.</p>
           ) : (
             <>
               <p className="text-slate-700">Chưa kết nối Zalo</p>

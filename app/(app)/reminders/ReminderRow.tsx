@@ -16,7 +16,7 @@ export default function ReminderRow(p: {
 }) {
   const [done, setDone] = useState(p.reminded);
   return (
-    <li className="space-y-2 rounded border p-3" data-testid="reminder-row">
+    <li className="space-y-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm" data-testid="reminder-row">
       <div className="flex items-center justify-between">
         <span className="font-medium">{p.studentName}</span>
         {p.confirmed && (

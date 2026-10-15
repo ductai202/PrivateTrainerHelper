@@ -31,10 +31,15 @@ npm run dev                 # http://localhost:3000
 Tài khoản demo (chỉ local, mật khẩu `demo12345`): `owner@demo.test`, `pt.a@demo.test`, `pt.b@demo.test`.
 `npx supabase db reset` đặt lại dữ liệu mẫu.
 
+## Triển khai
+
+Xem `docs/DEPLOY.md` (Supabase + Vercel + GitHub Actions). Deploy chỉ chạy khi bấm *Actions → Deploy → Run workflow*.
+
 ## Kiểm thử
 
 ```bash
 npm run test               # unit (Vitest)
+npm run test:integration   # tích hợp với Supabase local (cần npx supabase start)
 npx supabase test db       # RLS (pgTAP)
 npm run e2e                # Playwright, viewport 375px
 ```

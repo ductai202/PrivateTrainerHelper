@@ -1,0 +1,95 @@
+name: Deploy
+
+# Manual only: Actions -> Deploy -> Run workflow, then type "deploy".
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Gõ chữ deploy để xác nhận'
+        required: true
+        type: string
+      migrations:
+        description: 'Chạy migration database trước khi deploy'
+        required: true
+        type: boolean
+        default: true
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  guard:
+    name: Confirm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require the confirmation word
+        run: |
+          if [ "${{ inputs.confirm }}" != "deploy" ]; then
+            echo "Bạn chưa gõ đúng chữ 'deploy'. Dừng lại."
+            exit 1
+          fi
+
+  test:
+    name: Tests must pass first
+    needs: guard
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    name: Migrate and deploy
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Apply database migrations
+        if: ${{ inputs.migrations }}
+        run: |
+          supabase link --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"
+          supabase db push
+
+      - name: Pull Vercel settings
+        run: npx vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - name: Build
+        run: npx vercel@latest build --prod --token="$VERCEL_TOKEN"
+
+      - name: Deploy
+        run: npx vercel@latest deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+
+  smoke:
+    name: Smoke test
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Login page answers
+        run: |
+          for i in 1 2 3 4 5 6; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" "${{ secrets.PRODUCTION_URL }}/login" || true)
+            [ "$code" = "200" ] && break
+            sleep 10
+          done
+          echo "login -> $code"
+          [ "$code" = "200" ]
+      - name: Cron endpoint refuses anonymous calls
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "${{ secrets.PRODUCTION_URL }}/api/cron/tick")
+          echo "cron -> $code"
+          [ "$code" = "401" ]

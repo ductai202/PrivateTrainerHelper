@@ -20,7 +20,7 @@ export default async function RemindersPage() {
   const secret = linkSecret();
 
   return (
-    <main className="space-y-6 p-4">
+    <main className="space-y-5 p-4">
       <h1 className="text-xl font-semibold">Chuẩn bị ngày mai · {vnDateLabel(prep.tomorrow.start)}</h1>
 
       <section className="space-y-2">
@@ -31,7 +31,7 @@ export default async function RemindersPage() {
           <ul className="space-y-2">
             {prep.unfinishedToday.map((s) => (
               <li key={s.id} data-testid="unfinished-row">
-                <Link href={`/sessions/${s.id}`} className="block rounded border border-amber-300 bg-amber-50 p-3">
+                <Link href={`/sessions/${s.id}`} className="block rounded-2xl border border-amber-300 bg-amber-50 p-3">
                   <span className="font-medium">{vnHHmm(s.startAt)}</span> {vnDateLabel(s.startAt)} · {s.studentName}
                   <span className="ml-2 text-xs text-amber-900">Chưa ký / ghi bài tập</span>
                 </Link>
@@ -94,7 +94,7 @@ export default async function RemindersPage() {
         ) : (
           <ul className="space-y-2">
             {prep.suggestions.map((s) => (
-              <li key={s.studentId} data-testid="suggestion-row" className="space-y-2 rounded border p-3">
+              <li key={s.studentId} data-testid="suggestion-row" className="space-y-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
                 <div className="font-medium">
                   {vnHHmm(s.startAt)}–{vnHHmm(s.endAt)} · {s.name}
                 </div>
@@ -121,7 +121,7 @@ export default async function RemindersPage() {
         ) : (
           <ul className="space-y-2">
             {prep.waitlist.map((w) => (
-              <li key={w.studentId} data-testid="waitlist-row" className="rounded border p-3">
+              <li key={w.studentId} data-testid="waitlist-row" className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
                 <Link href={`/students/${w.studentId}`} className="font-medium underline">
                   {w.name}
                 </Link>

@@ -13,6 +13,8 @@ Cập nhật: 2026-10-15. Thứ tự dưới đây là giả thuyết, sẽ đ�
 
 ## Giai đoạn 1.1 — Sẵn sàng pilot (trước khi mời PT)
 
+**Cập nhật:** đã thêm xưng hô tự động theo tuổi/giới tính, giờ nhắc mặc định 22:00, admin cố định (`npm run create-admin`), bot trả lời `?`, chống spam, giao diện mới, CI/CD GitHub Actions và `docs/DEPLOY.md`.
+
 **Trạng thái: code xong, test xanh** (92 unit, RLS, 46 e2e). Chưa thử với Zalo/Push/AI thật, xem `docs/TESTING-CREDENTIALS.md`.
 
 Kế hoạch chi tiết (đã duyệt): `docs/superpowers/plans/2026-10-16-phase1.1.md`.

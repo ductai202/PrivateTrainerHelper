@@ -4,15 +4,16 @@ Tên "Học viên A1", "PT An" chỉ có trong **dữ liệu demo** ở máy dev
 
 ## Ai làm gì, một lần duy nhất
 
-### Chủ gym (làm một lần)
-1. Đăng nhập → **Quản lý → Tạo tài khoản PT**: nhập tên và email PT, app sinh mật khẩu tạm. Gửi mật khẩu cho PT.
+### Chủ gym / admin (làm một lần)
+1. Tài khoản admin cố định được tạo bằng lệnh `npm run create-admin` (xem `docs/DEPLOY.md`, phần 5). Đăng nhập → **Quản lý → Tạo tài khoản PT**: nhập tên, email, giới tính, năm sinh của PT; app sinh mật khẩu tạm. Gửi mật khẩu cho PT.
 2. (Nếu dùng Zalo Bot) tạo bot một lần trên Zalo Bot Platform, đặt token và webhook theo `docs/TESTING-CREDENTIALS.md`.
 
 ### Mỗi PT (làm một lần)
 1. Đăng nhập bằng mật khẩu tạm → **Cài đặt → Đổi mật khẩu**.
-2. **Cài đặt → Nhận thông báo qua Zalo**: mở Zalo, chat với bot của phòng tập, nhắn đúng mã 6 ký tự hiện trong app. Từ đây mọi báo cáo của học viên (xác nhận, huỷ, xin đổi giờ, "vẫn tập chứ?") đến thẳng Zalo của PT. Cách này chạy tốt cả trên iPhone.
-3. (Tuỳ chọn) Thêm app vào màn hình chính và bật **thông báo đẩy**. iPhone cần iOS 16.4 trở lên.
-4. **Cài đặt → Nhắc buổi tối**: chọn giờ muốn app nhắc chuẩn bị ngày mai (mặc định 20:00).
+2. **Cài đặt → Thông tin của bạn**: chọn giới tính và năm sinh để app xưng hô đúng với học viên (xem mục "Cách xưng hô" bên dưới).
+3. **Cài đặt → Nhận thông báo qua Zalo**: mở Zalo, chat với bot của phòng tập, nhắn đúng mã 6 ký tự hiện trong app. Từ đây mọi báo cáo của học viên (xác nhận, huỷ, xin đổi giờ, "vẫn tập chứ?") đến thẳng Zalo của PT. Cách này chạy tốt cả trên iPhone.
+4. (Tuỳ chọn) Thêm app vào màn hình chính và bật **thông báo đẩy**. iPhone cần iOS 16.4 trở lên.
+5. **Cài đặt → Nhắc buổi tối**: chọn giờ muốn app nhắc chuẩn bị ngày mai (mặc định **22:00**).
 
 ## Với mỗi học viên mới
 
@@ -59,3 +60,29 @@ Học viên **không** bắt buộc làm bước 2: PT vẫn nhắc bằng nút 
 - Link cá nhân hết hạn sau 30 ngày; PT bấm **Tạo link mới** để vô hiệu hoá link cũ. Link từng buổi có nút **Thu hồi link buổi**.
 - Mã kết nối bot dùng **một lần**; mỗi chat chỉ được nhập sai tối đa 5 lần trong 10 phút.
 - Gợi ý bài tập của AI chỉ là **bản nháp**, PT luôn xem và sửa trước khi lưu. App chỉ gửi tên gọi, mục tiêu, chấn thương, số đo và bài tập gần đây (không gửi số điện thoại hay họ tên đầy đủ).
+
+## Cách xưng hô trong lời nhắn
+
+App tự chọn cách gọi theo **giới tính và năm sinh của cả PT lẫn học viên**, giọng thân mật:
+
+| Học viên so với PT | Học viên được gọi | PT tự xưng |
+|---|---|---|
+| Nhỏ hơn từ 3 tuổi | em | anh / chị (theo giới tính PT) |
+| Lớn hơn từ 3 tuổi | anh / chị (theo giới tính học viên) | em |
+| Chênh tối đa 2 tuổi | bạn | mình |
+| Thiếu năm sinh hoặc giới tính | bạn | mình |
+
+Ví dụ: "Hi em Lan ơi 👋 Anh nhắc lịch tập lúc 08:30 Thứ 3, 20/10 nha. Em xác nhận giúp anh nhé!". Muốn xưng hô chuẩn thì nhớ nhập **năm sinh** và **giới tính** cho học viên.
+
+## Học viên nhắn bot lung tung thì sao
+
+Bot chỉ hiểu vài từ khoá, mọi thứ khác **không làm thay đổi buổi tập nào**:
+
+| Học viên nhắn | Bot làm gì |
+|---|---|
+| `OK` | Xác nhận buổi vừa được hỏi |
+| `Bận` (có dấu) | Huỷ buổi vừa được hỏi, báo PT |
+| `?` hoặc `hướng dẫn` | Gửi hướng dẫn và link cá nhân |
+| `stop` | Ngắt kết nối |
+| Mã 6 ký tự | Kết nối tài khoản (một lần) |
+| Bất cứ câu nào khác | Nhắc ngắn cách dùng, **tối đa một lần mỗi 10 phút**, sau đó im lặng |

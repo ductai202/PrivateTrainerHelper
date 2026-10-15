@@ -1,3 +1,4 @@
+import { Avatar } from '@/components/ui/Avatar';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { SESSION_SELECT, toSessionRow } from '@/lib/data/sessions';
 import { addressFor } from '@/lib/domain/address';
@@ -23,8 +24,8 @@ const STATUS_LABEL: Record<string, string> = {
   no_show: 'Vắng',
   cancelled: 'Đã huỷ',
 };
-const input = 'min-h-12 w-full rounded border px-3';
-const btn = 'min-h-12 rounded border px-4';
+const input = 'min-h-12 w-full rounded-xl border border-slate-300 px-3';
+const btn = 'min-h-12 rounded-xl border border-slate-300 bg-white px-4 font-medium';
 
 export default async function SessionPage({
   params,
@@ -68,14 +69,22 @@ export default async function SessionPage({
 
   return (
     <main className="space-y-4 p-4">
-      <header>
-        <h1 className="text-xl font-semibold">{s.studentName}</h1>
-        <p>
-          {vnDateLabel(s.startAt)} · {vnHHmm(s.startAt)}–{vnHHmm(s.endAt)}
-        </p>
-        <p data-testid="status">{STATUS_LABEL[s.status]}</p>
-        {s.cancelReason && (
+      <header className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <Avatar name={s.studentName} size={56} />
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-xl font-semibold">{s.studentName}</h1>
           <p className="text-sm text-slate-600">
+            {vnDateLabel(s.startAt)} · {vnHHmm(s.startAt)}–{vnHHmm(s.endAt)}
+          </p>
+          <p
+            data-testid="status"
+            className="mt-1 inline-block rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-800"
+          >
+            {STATUS_LABEL[s.status]}
+          </p>
+        </div>
+        {s.cancelReason && (
+          <p className="basis-full text-sm text-slate-600">
             Lý do huỷ: {s.cancelReason}
             {s.cancelledBy === 'student' && ' (học viên báo)'}
             {s.cancelledBy === 'pt' && ' (PT huỷ)'}
@@ -132,7 +141,7 @@ export default async function SessionPage({
 
       {s.status !== 'cancelled' && (
         <section className="space-y-4">
-          <div className="space-y-2">
+          <div className="space-y-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <h2 className="font-medium">Kết quả buổi</h2>
             <div className="flex flex-wrap gap-2">
               <form action={markOutcome.bind(null, s.id, 'done')}>
@@ -147,7 +156,7 @@ export default async function SessionPage({
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <h2 className="font-medium">Học viên đã ký</h2>
             <p data-testid="signed">{s.studentSigned ? 'Đã ký' : 'Chưa ký'}</p>
             <form action={setSigned.bind(null, s.id, !s.studentSigned)}>
@@ -155,7 +164,7 @@ export default async function SessionPage({
             </form>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <h2 className="font-medium">Bài tập hôm nay</h2>
             {s.workoutLogged && <p className="text-sm text-green-700">Đã ghi bài tập</p>}
             {aiConfigured() && <WorkoutSuggest sessionId={s.id} />}
