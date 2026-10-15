@@ -13,9 +13,19 @@ Cập nhật: 2026-10-15. Thứ tự dưới đây là giả thuyết, sẽ đ�
 
 ## Giai đoạn 1.1 — Sẵn sàng pilot (trước khi mời PT)
 
+Kế hoạch chi tiết (đã duyệt): `docs/superpowers/plans/2026-10-16-phase1.1.md`.
+
 Chặn pilot:
 - Tạo tài khoản PT bằng mật khẩu tạm (thay cho mời qua email, hiện không có trang đặt mật khẩu).
 - Đổi mật khẩu trong Cài đặt.
+
+Đổi lịch sát giờ (học viên đã xác nhận rồi báo bận qua Zalo cá nhân của PT):
+- Push hỏi PT khoảng 90 phút trước mỗi buổi "vẫn tập chứ?".
+- "HV báo bận" 1 chạm trên thẻ buổi; "Đổi giờ" trong một bước.
+- Checklist sau buổi có thêm "Học viên huỷ" (lưới an toàn khi PT quên). Huỷ không bao giờ trừ buổi.
+
+Chuẩn bị ngày mai (mỗi tối, giờ do từng PT chọn):
+- Một màn gồm: buổi hôm nay chưa cập nhật, buổi mai cần nhắc, gợi ý xếp lịch (ai, mấy giờ), gợi ý bài tập (Claude API, PT sửa rồi lưu).
 
 Nên có:
 - Mở lại buổi đã huỷ / hoàn tác nhầm trạng thái.
