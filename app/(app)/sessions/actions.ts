@@ -33,13 +33,14 @@ export async function createSession(_prev: FormState, form: FormData): Promise<F
   if (!student) return { error: 'Không tìm thấy học viên' };
   const ptId = student.pt_id;
 
-  // conflicts: any non-cancelled session of the same PT or student on that VN day
+  // conflicts: any non-cancelled session of the same PT or student overlapping the window
+  // (also catches sessions that started before midnight and run past it)
   const day = vnDayRange(startAt);
   const { data: existing } = await supabase
     .from('sessions')
     .select(SESSION_SELECT)
-    .gte('start_at', day.start.toISOString())
-    .lt('start_at', day.end.toISOString());
+    .lt('start_at', endAt.toISOString())
+    .gt('end_at', startAt.toISOString());
   const rows = ((existing ?? []) as unknown as Parameters<typeof toSessionRow>[0][]).map(toSessionRow);
   const clash = findConflicts({ ptId, studentId, startAt, endAt }, rows)[0];
   if (clash) {

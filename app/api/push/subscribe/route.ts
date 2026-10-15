@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
+import { createAdminSupabase } from '@/lib/supabase/admin';
 
 export async function POST(request: Request) {
   const supabase = await createServerSupabase();
@@ -20,7 +21,9 @@ export async function POST(request: Request) {
     .maybeSingle();
   if (!member) return NextResponse.json({ error: 'no member' }, { status: 403 });
 
-  const { error } = await supabase.from('push_subscriptions').upsert(
+  // The endpoint identifies a physical device: when it changes hands the row must move to the
+  // new member, which RLS (own rows only) cannot do. The caller was authenticated above.
+  const { error } = await createAdminSupabase().from('push_subscriptions').upsert(
     {
       gym_id: member.gym_id,
       member_id: member.id,

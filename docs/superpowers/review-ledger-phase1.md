@@ -34,3 +34,7 @@ Final: minor (deferred): "+84 0912..." phone rejected
 Final: minor (deferred): invitePt leaves orphan auth user on member insert failure; bot message_log insert error ignored in cron
 Final: minor (deferred): storage policy uuid cast may throw on non-uuid path; link tokens never expire (blocked once session starts)
 Final: minor (deferred): linkSecret() falls back to CRON_SECRET; no webhook update_id dedupe
+Follow-up: fixed minor — progress photos shown via signed URLs, photo-only update saved — minors.spec 'progress photo' RED→GREEN
+Follow-up: fixed minor — push subscription moves to new member when device changes hands — minors.spec 'push subscription' RED→GREEN
+Follow-up: fixed minor — overlap query catches sessions crossing midnight — minors.spec 'past midnight' RED→GREEN
+Follow-up: fixed minor — RLS requires pt_id in same gym (migration 0005) — same_gym.test.sql RED→GREEN

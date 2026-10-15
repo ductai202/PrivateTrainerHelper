@@ -43,9 +43,10 @@ export async function addMeasurement(studentId: string, form: FormData) {
     await supabase.from('body_measurements').insert({ ...base, measured_on: todayIso(), ...m });
   }
   const note = str(form, 'note');
-  if (note) {
+  const photo = form.get('photo');
+  const hasPhoto = photo instanceof File && photo.size > 0;
+  if (note || hasPhoto) {
     let photoPath: string | null = null;
-    const photo = form.get('photo');
     if (photo instanceof File && photo.size > 0) {
       const path = `${member.gymId}/${studentId}/${crypto.randomUUID()}.jpg`;
       const up = await supabase.storage
@@ -55,7 +56,7 @@ export async function addMeasurement(studentId: string, form: FormData) {
     }
     await supabase
       .from('progress_notes')
-      .insert({ ...base, noted_on: todayIso(), content: note, photo_path: photoPath });
+      .insert({ ...base, noted_on: todayIso(), content: note || 'Ảnh tiến độ', photo_path: photoPath });
   }
   revalidatePath(`/students/${studentId}`);
 }

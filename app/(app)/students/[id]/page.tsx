@@ -51,6 +51,17 @@ export default async function StudentPage({
       supabase.from('meal_plans').select('*').eq('student_id', id).order('effective_from', { ascending: false }).order('created_at', { ascending: false }),
     ]);
 
+  const photoPaths = (notes ?? []).map((n) => n.photo_path).filter((p): p is string => !!p);
+  const photoUrls = new Map<string, string>();
+  if (photoPaths.length > 0) {
+    const { data: signed } = await supabase.storage
+      .from('progress-photos')
+      .createSignedUrls(photoPaths, 3600);
+    for (const row of signed ?? []) {
+      if (row.path && row.signedUrl) photoUrls.set(row.path, row.signedUrl);
+    }
+  }
+
   const pkg = pkgs?.[0];
   const remaining = pkg
     ? remainingAcrossPackages(
@@ -158,6 +169,15 @@ export default async function StudentPage({
             {(notes ?? []).map((n) => (
               <li key={n.id} className="rounded border p-2 text-sm">
                 <span className="text-slate-500">{n.noted_on}</span> — {n.content}
+                {n.photo_path && photoUrls.get(n.photo_path) && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    data-testid="progress-photo"
+                    src={photoUrls.get(n.photo_path)}
+                    alt="Ảnh tiến độ"
+                    className="mt-2 max-h-64 rounded"
+                  />
+                )}
               </li>
             ))}
           </ul>
