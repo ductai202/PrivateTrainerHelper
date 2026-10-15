@@ -35,7 +35,12 @@ export async function studentRespond(
   }
   await db
     .from('sessions')
-    .update({ status: 'cancelled', cancel_reason: reason || 'Học viên huỷ qua tin nhắn' })
+    .update({
+      status: 'cancelled',
+      cancel_reason: reason || 'Học viên huỷ qua tin nhắn',
+      cancelled_by: 'student',
+      cancelled_at: new Date().toISOString(),
+    })
     .eq('id', sessionId)
     .in('status', ['scheduled', 'confirmed']);
   await sendPush(s.pt_id, {

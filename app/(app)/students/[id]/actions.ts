@@ -94,3 +94,13 @@ export async function addPackage(studentId: string, form: FormData) {
   });
   revalidatePath(`/students/${studentId}`);
 }
+
+/** Invalidates every personal link already sent to this student by bumping the version. */
+export async function regenerateStudentLink(studentId: string) {
+  await getCurrentMember();
+  const supabase = await createServerSupabase();
+  const { data } = await supabase.from('students').select('link_version').eq('id', studentId).single();
+  if (!data) return;
+  await supabase.from('students').update({ link_version: data.link_version + 1 }).eq('id', studentId);
+  revalidatePath(`/students/${studentId}`);
+}

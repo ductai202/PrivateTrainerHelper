@@ -2,11 +2,10 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getCurrentMember } from '@/lib/auth/currentMember';
+import { moveSession } from '@/lib/data/moveSession';
 import { SESSION_SELECT, toSessionRow } from '@/lib/data/sessions';
-import { findConflicts } from '@/lib/domain/conflicts';
-import { createServerSupabase } from '@/lib/supabase/server';
 import { QUICK_REASONS } from '@/lib/domain/reasons';
-import { vnHHmm } from '@/lib/time';
+import { createServerSupabase } from '@/lib/supabase/server';
 
 export type RescheduleState = { error?: string } | undefined;
 
@@ -30,7 +29,7 @@ export async function studentCancelled(sessionId: string, reason: string) {
   redirect(`/sessions/${sessionId}`);
 }
 
-/** Convenience wrapper for the one-tap buttons on a session card. */
+/** Convenience wrappers for the one-tap buttons on a session card. */
 export async function studentBusy(sessionId: string) {
   return studentCancelled(sessionId, QUICK_REASONS.busy);
 }
@@ -58,10 +57,7 @@ export async function reopenSession(sessionId: string) {
   revalidatePath('/', 'layout');
 }
 
-/**
- * Moves a session to another slot in one step: checks the new slot first, then cancels the
- * old one (reason "Đổi giờ", by the student) and creates the new one linked via rescheduled_from.
- */
+/** PT typed a new slot for a session ("Đổi giờ"). */
 export async function rescheduleSession(
   sessionId: string,
   _prev: RescheduleState,
@@ -80,51 +76,71 @@ export async function rescheduleSession(
   const old = toSessionRow(raw as unknown as Parameters<typeof toSessionRow>[0]);
   if (!OPEN.includes(old.status)) return { error: 'Buổi này không còn đổi giờ được' };
 
-  const durationMs = old.endAt.getTime() - old.startAt.getTime();
   const startAt = new Date(`${date}T${time}:00+07:00`);
-  const endAt = new Date(startAt.getTime() + durationMs);
   if (Number.isNaN(startAt.getTime())) return { error: 'Ngày giờ không hợp lệ' };
+  const endAt = new Date(startAt.getTime() + (old.endAt.getTime() - old.startAt.getTime()));
 
-  const { data: nearby } = await supabase
-    .from('sessions')
-    .select(SESSION_SELECT)
-    .lt('start_at', endAt.toISOString())
-    .gt('end_at', startAt.toISOString());
-  const rows = ((nearby ?? []) as unknown as Parameters<typeof toSessionRow>[0][]).map(toSessionRow);
-  const clash = findConflicts(
-    { id: old.id, ptId: old.ptId, studentId: old.studentId, startAt, endAt },
-    rows,
-  )[0];
-  if (clash) {
-    const who = rows.find((r) => r.id === clash.id)?.studentName ?? '';
-    return { error: `Trùng lịch với ${who} lúc ${vnHHmm(clash.startAt)}–${vnHHmm(clash.endAt)}` };
-  }
+  const moved = await moveSession(supabase, member.gymId, old, startAt, endAt, QUICK_REASONS.reschedule);
+  if ('error' in moved) return { error: moved.error };
+  revalidatePath('/', 'layout');
+  redirect(`/sessions/${moved.id}`);
+}
 
-  const { data: created, error } = await supabase
-    .from('sessions')
-    .insert({
-      gym_id: member.gymId,
-      pt_id: old.ptId,
-      student_id: old.studentId,
-      package_id: old.packageId,
-      start_at: startAt.toISOString(),
-      end_at: endAt.toISOString(),
-      rescheduled_from: old.id,
-    })
-    .select('id')
-    .single();
-  if (error || !created) return { error: 'Không tạo được buổi mới' };
+/** PT accepts a reschedule request made by the student through their personal link. */
+export async function approveReschedule(
+  requestId: string,
+  _prev: RescheduleState,
+): Promise<RescheduleState> {
+  const member = await getCurrentMember();
+  const supabase = await createServerSupabase();
+  const { data: req } = await supabase
+    .from('reschedule_requests')
+    .select('id, session_id, requested_start, requested_end, status')
+    .eq('id', requestId)
+    .maybeSingle();
+  if (!req || req.status !== 'pending') return { error: 'Yêu cầu này đã được xử lý' };
+
+  const { data: raw } = await supabase.from('sessions').select(SESSION_SELECT).eq('id', req.session_id).maybeSingle();
+  if (!raw) return { error: 'Không tìm thấy buổi tập' };
+  const old = toSessionRow(raw as unknown as Parameters<typeof toSessionRow>[0]);
+  if (!OPEN.includes(old.status)) return { error: 'Buổi này không còn đổi giờ được' };
+
+  const moved = await moveSession(
+    supabase,
+    member.gymId,
+    old,
+    new Date(req.requested_start),
+    new Date(req.requested_end),
+    QUICK_REASONS.reschedule,
+  );
+  if ('error' in moved) return { error: moved.error };
 
   await supabase
-    .from('sessions')
-    .update({
-      status: 'cancelled',
-      cancel_reason: QUICK_REASONS.reschedule,
-      cancelled_by: 'student',
-      cancelled_at: new Date().toISOString(),
-    })
-    .eq('id', old.id);
-
+    .from('reschedule_requests')
+    .update({ status: 'approved', decided_at: new Date().toISOString() })
+    .eq('id', requestId);
   revalidatePath('/', 'layout');
-  redirect(`/sessions/${created.id}`);
+  redirect(`/sessions/${moved.id}`);
+}
+
+export async function declineReschedule(requestId: string) {
+  await getCurrentMember();
+  const supabase = await createServerSupabase();
+  await supabase
+    .from('reschedule_requests')
+    .update({ status: 'declined', decided_at: new Date().toISOString() })
+    .eq('id', requestId)
+    .eq('status', 'pending');
+  revalidatePath('/', 'layout');
+}
+
+/** Kills the student's link for this one session (it keeps working for other sessions). */
+export async function revokeSessionLink(sessionId: string) {
+  await getCurrentMember();
+  const supabase = await createServerSupabase();
+  await supabase
+    .from('sessions')
+    .update({ link_revoked_at: new Date().toISOString() })
+    .eq('id', sessionId);
+  revalidatePath('/', 'layout');
 }

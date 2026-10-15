@@ -49,6 +49,34 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"bot_link_attempts": {
+                  Row: {
+                    "attempted_at": string,"chat_id": string,"id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "attempted_at"?: string,"chat_id": string,"id"?: string
+                  }
+                  Update: {
+                    "attempted_at"?: string,"chat_id"?: string,"id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"bot_updates": {
+                  Row: {
+                    "received_at": string,"update_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "received_at"?: string,"update_id": string
+                  }
+                  Update: {
+                    "received_at"?: string,"update_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"gyms": {
                   Row: {
                     "created_at": string,"id": string,"name": string
@@ -239,16 +267,48 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
-                },"sessions": {
+                },"reschedule_requests": {
                   Row: {
-                    "cancel_reason": string | null,"cancelled_at": string | null,"cancelled_by": string | null,"checklist_pushed_at": string | null,"checklist_reminded_at": string | null,"created_at": string,"end_at": string,"gym_id": string,"id": string,"package_id": string | null,"precheck_pushed_at": string | null,"pt_id": string,"rescheduled_from": string | null,"signed_at": string | null,"start_at": string,"status": string,"student_id": string,"student_signed": boolean,"workout_content": string | null,"workout_logged": boolean
+                    "created_at": string,"decided_at": string | null,"gym_id": string,"id": string,"requested_end": string,"requested_start": string,"session_id": string,"status": string,"student_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "cancel_reason"?: string | null,"cancelled_at"?: string | null,"cancelled_by"?: string | null,"checklist_pushed_at"?: string | null,"checklist_reminded_at"?: string | null,"created_at"?: string,"end_at": string,"gym_id": string,"id"?: string,"package_id"?: string | null,"precheck_pushed_at"?: string | null,"pt_id": string,"rescheduled_from"?: string | null,"signed_at"?: string | null,"start_at": string,"status"?: string,"student_id": string,"student_signed"?: boolean,"workout_content"?: string | null,"workout_logged"?: boolean
+                    "created_at"?: string,"decided_at"?: string | null,"gym_id": string,"id"?: string,"requested_end": string,"requested_start": string,"session_id": string,"status"?: string,"student_id": string
                   }
                   Update: {
-                    "cancel_reason"?: string | null,"cancelled_at"?: string | null,"cancelled_by"?: string | null,"checklist_pushed_at"?: string | null,"checklist_reminded_at"?: string | null,"created_at"?: string,"end_at"?: string,"gym_id"?: string,"id"?: string,"package_id"?: string | null,"precheck_pushed_at"?: string | null,"pt_id"?: string,"rescheduled_from"?: string | null,"signed_at"?: string | null,"start_at"?: string,"status"?: string,"student_id"?: string,"student_signed"?: boolean,"workout_content"?: string | null,"workout_logged"?: boolean
+                    "created_at"?: string,"decided_at"?: string | null,"gym_id"?: string,"id"?: string,"requested_end"?: string,"requested_start"?: string,"session_id"?: string,"status"?: string,"student_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "reschedule_requests_gym_id_fkey"
+      columns: ["gym_id"]
+isOneToOne: false
+      referencedRelation: "gyms"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "reschedule_requests_session_id_fkey"
+      columns: ["session_id"]
+isOneToOne: false
+      referencedRelation: "sessions"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "reschedule_requests_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "students"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"sessions": {
+                  Row: {
+                    "bot_precheck_sent_at": string | null,"cancel_reason": string | null,"cancelled_at": string | null,"cancelled_by": string | null,"checklist_pushed_at": string | null,"checklist_reminded_at": string | null,"created_at": string,"end_at": string,"gym_id": string,"id": string,"link_revoked_at": string | null,"package_id": string | null,"precheck_pushed_at": string | null,"pt_id": string,"rescheduled_from": string | null,"signed_at": string | null,"start_at": string,"status": string,"student_id": string,"student_signed": boolean,"workout_content": string | null,"workout_logged": boolean
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "bot_precheck_sent_at"?: string | null,"cancel_reason"?: string | null,"cancelled_at"?: string | null,"cancelled_by"?: string | null,"checklist_pushed_at"?: string | null,"checklist_reminded_at"?: string | null,"created_at"?: string,"end_at": string,"gym_id": string,"id"?: string,"link_revoked_at"?: string | null,"package_id"?: string | null,"precheck_pushed_at"?: string | null,"pt_id": string,"rescheduled_from"?: string | null,"signed_at"?: string | null,"start_at": string,"status"?: string,"student_id": string,"student_signed"?: boolean,"workout_content"?: string | null,"workout_logged"?: boolean
+                  }
+                  Update: {
+                    "bot_precheck_sent_at"?: string | null,"cancel_reason"?: string | null,"cancelled_at"?: string | null,"cancelled_by"?: string | null,"checklist_pushed_at"?: string | null,"checklist_reminded_at"?: string | null,"created_at"?: string,"end_at"?: string,"gym_id"?: string,"id"?: string,"link_revoked_at"?: string | null,"package_id"?: string | null,"precheck_pushed_at"?: string | null,"pt_id"?: string,"rescheduled_from"?: string | null,"signed_at"?: string | null,"start_at"?: string,"status"?: string,"student_id"?: string,"student_signed"?: boolean,"workout_content"?: string | null,"workout_logged"?: boolean
                   }
                   Relationships: [
                     {
@@ -311,14 +371,14 @@ isOneToOne: false
                   ]
                 },"students": {
                   Row: {
-                    "archived": boolean,"birth_year": number | null,"bot_link_code": string,"created_at": string,"full_name": string,"gender": string | null,"goal": string | null,"gym_id": string,"health_notes": string | null,"height_cm": number | null,"id": string,"phone": string,"pt_id": string,"target_per_week": number,"zalo_bot_chat_id": string | null
+                    "archived": boolean,"birth_year": number | null,"bot_link_code": string,"created_at": string,"full_name": string,"gender": string | null,"goal": string | null,"gym_id": string,"health_notes": string | null,"height_cm": number | null,"id": string,"link_version": number,"phone": string,"pt_id": string,"target_per_week": number,"zalo_bot_chat_id": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "archived"?: boolean,"birth_year"?: number | null,"bot_link_code"?: string,"created_at"?: string,"full_name": string,"gender"?: string | null,"goal"?: string | null,"gym_id": string,"health_notes"?: string | null,"height_cm"?: number | null,"id"?: string,"phone": string,"pt_id": string,"target_per_week"?: number,"zalo_bot_chat_id"?: string | null
+                    "archived"?: boolean,"birth_year"?: number | null,"bot_link_code"?: string,"created_at"?: string,"full_name": string,"gender"?: string | null,"goal"?: string | null,"gym_id": string,"health_notes"?: string | null,"height_cm"?: number | null,"id"?: string,"link_version"?: number,"phone": string,"pt_id": string,"target_per_week"?: number,"zalo_bot_chat_id"?: string | null
                   }
                   Update: {
-                    "archived"?: boolean,"birth_year"?: number | null,"bot_link_code"?: string,"created_at"?: string,"full_name"?: string,"gender"?: string | null,"goal"?: string | null,"gym_id"?: string,"health_notes"?: string | null,"height_cm"?: number | null,"id"?: string,"phone"?: string,"pt_id"?: string,"target_per_week"?: number,"zalo_bot_chat_id"?: string | null
+                    "archived"?: boolean,"birth_year"?: number | null,"bot_link_code"?: string,"created_at"?: string,"full_name"?: string,"gender"?: string | null,"goal"?: string | null,"gym_id"?: string,"health_notes"?: string | null,"height_cm"?: number | null,"id"?: string,"link_version"?: number,"phone"?: string,"pt_id"?: string,"target_per_week"?: number,"zalo_bot_chat_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -332,6 +392,32 @@ isOneToOne: false
       columns: ["pt_id"]
 isOneToOne: false
       referencedRelation: "members"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"waitlist_entries": {
+                  Row: {
+                    "active": boolean,"created_at": string,"gym_id": string,"id": string,"note": string | null,"student_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "active"?: boolean,"created_at"?: string,"gym_id": string,"id"?: string,"note"?: string | null,"student_id": string
+                  }
+                  Update: {
+                    "active"?: boolean,"created_at"?: string,"gym_id"?: string,"id"?: string,"note"?: string | null,"student_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "waitlist_entries_gym_id_fkey"
+      columns: ["gym_id"]
+isOneToOne: false
+      referencedRelation: "gyms"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "waitlist_entries_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "students"
       referencedColumns: ["id"]
     }
                   ]

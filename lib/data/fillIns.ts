@@ -1,6 +1,7 @@
 import { createServerSupabase } from '@/lib/supabase/server';
 import { remainingAcrossPackages } from '@/lib/domain/packages';
 import type { AvailabilityWindow, FillInCandidate, SessionLite } from '@/lib/domain/types';
+import { lateCancelCount } from '@/lib/domain/reliability';
 import { vnDayRange, vnWeekRange } from '@/lib/time';
 
 /** Same-PT students (other than the session's own) with the numbers `suggestFillIns` ranks on. */
@@ -15,7 +16,8 @@ export async function getFillInCandidates(
       `id, full_name, phone,
        packages(id, total_sessions, created_at),
        student_availability(weekday, from_time, to_time),
-       sessions(id, package_id, status, student_signed, start_at)`,
+       sessions(id, package_id, status, student_signed, start_at, cancelled_by, cancelled_at),
+       waitlist_entries(active)`,
     )
     .eq('pt_id', slot.ptId)
     .eq('archived', false)
@@ -47,6 +49,16 @@ export async function getFillInCandidates(
       phone: s.phone,
       remaining: pkg ? remainingAcrossPackages((s.packages ?? []).map((p) => p.total_sessions), lite) : 0,
       availability,
+      onWaitlist: (s.waitlist_entries ?? []).some((w) => w.active),
+      lateCancels: lateCancelCount(
+        sessions.map((x) => ({
+          status: x.status,
+          cancelledBy: x.cancelled_by === 'student' || x.cancelled_by === 'pt' ? x.cancelled_by : null,
+          startAt: new Date(x.start_at),
+          cancelledAt: x.cancelled_at ? new Date(x.cancelled_at) : null,
+        })),
+        new Date(),
+      ),
       sessionsOnDay: live.filter((x) => inRange(x.start_at, day)).length,
       sessionsThisWeek: live.filter((x) => inRange(x.start_at, week)).length,
     };

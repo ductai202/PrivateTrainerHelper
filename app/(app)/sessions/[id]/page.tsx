@@ -7,9 +7,10 @@ import { QUICK_REASONS } from '@/lib/domain/reasons';
 import { aiConfigured } from '@/lib/ai/suggestWorkout';
 import { vnDateLabel, vnHHmm } from '@/lib/time';
 import { cancelSession, markOutcome, saveWorkout, setSigned } from '../actions';
-import { confirmSession, reopenSession, studentCancelled } from '../lateChanges';
+import { confirmSession, reopenSession, revokeSessionLink, studentCancelled } from '../lateChanges';
 import FillInInvite from './FillInInvite';
 import RescheduleForm from './RescheduleForm';
+import RescheduleRequest from './RescheduleRequest';
 import WorkoutSuggest from './WorkoutSuggest';
 
 const STATUS_LABEL: Record<string, string> = {
@@ -39,6 +40,18 @@ export default async function SessionPage({
   if (!data) return <main className="p-4">Không tìm thấy buổi tập</main>;
   const s = toSessionRow(data as unknown as Parameters<typeof toSessionRow>[0]);
 
+  const [{ data: pending }, { data: linkRow }] = await Promise.all([
+    supabase
+      .from('reschedule_requests')
+      .select('id, requested_start')
+      .eq('session_id', id)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase.from('sessions').select('link_revoked_at').eq('id', id).single(),
+  ]);
+
   const now = new Date();
   const upcoming = (s.status === 'scheduled' || s.status === 'confirmed') && s.startAt > now;
   const candidates =
@@ -66,6 +79,13 @@ export default async function SessionPage({
           </p>
         )}
       </header>
+
+      {pending && s.status !== 'cancelled' && (
+        <RescheduleRequest
+          requestId={pending.id}
+          label={`${vnHHmm(new Date(pending.requested_start))} ${vnDateLabel(new Date(pending.requested_start))}`}
+        />
+      )}
 
       {upcoming && (
         <section className="space-y-3">
@@ -95,6 +115,16 @@ export default async function SessionPage({
             </a>
           )}
         </section>
+      )}
+
+      {linkRow?.link_revoked_at ? (
+        <p className="text-sm text-slate-600">Đã thu hồi link của buổi này</p>
+      ) : (
+        upcoming && (
+          <form action={revokeSessionLink.bind(null, s.id)}>
+            <button className="min-h-11 text-sm underline">Thu hồi link buổi</button>
+          </form>
+        )
       )}
 
       {s.status !== 'cancelled' && (
@@ -184,6 +214,7 @@ export default async function SessionPage({
                     endAt: s.endAt,
                   })}
                   bookHref={`/sessions/new?student=${c.studentId}&date=${date}&time=${vnHHmm(s.startAt)}`}
+                  onWaitlist={c.onWaitlist}
                 />
               ))}
             </ul>

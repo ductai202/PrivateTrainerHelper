@@ -1,11 +1,20 @@
 import Link from 'next/link';
+import { headers } from 'next/headers';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { remainingAcrossPackages } from '@/lib/domain/packages';
 import type { SessionLite } from '@/lib/domain/types';
-import { vnDateLabel } from '@/lib/time';
+import { vnDateLabel, vnDayRange } from '@/lib/time';
 import ZaloButton from '@/components/ZaloButton';
 import MeasurementChart from '@/components/MeasurementChart';
-import { addMealPlan, addMeasurement, addPackage, updateStudentProfile } from './actions';
+import { linkSecret, signStudentToken } from '@/lib/links/token';
+import { lateCancelCount } from '@/lib/domain/reliability';
+import {
+  addMealPlan,
+  addMeasurement,
+  addPackage,
+  regenerateStudentLink,
+  updateStudentProfile,
+} from './actions';
 
 type Tab = 'profile' | 'progress' | 'nutrition' | 'workouts';
 const TABS: [Tab, string][] = [
@@ -62,6 +71,28 @@ export default async function StudentPage({
     }
   }
 
+  const h = await headers();
+  const origin =
+    process.env.NEXT_PUBLIC_APP_URL ?? `${h.get('x-forwarded-proto') ?? 'http'}://${h.get('host')}`;
+  const secret = linkSecret();
+  const personalLink = secret
+    ? `${origin}/s/${signStudentToken(
+        s.id,
+        s.link_version,
+        new Date(vnDayRange(new Date()).start.getTime() + 31 * 24 * 3600_000),
+        secret,
+      )}`
+    : null;
+  const lateCancels = lateCancelCount(
+    (sessions ?? []).map((x) => ({
+      status: x.status,
+      cancelledBy: x.cancelled_by === 'student' || x.cancelled_by === 'pt' ? x.cancelled_by : null,
+      startAt: new Date(x.start_at),
+      cancelledAt: x.cancelled_at ? new Date(x.cancelled_at) : null,
+    })),
+    new Date(),
+  );
+
   const pkg = pkgs?.[0];
   const remaining = pkg
     ? remainingAcrossPackages(
@@ -101,8 +132,30 @@ export default async function StudentPage({
           <p>{remaining === null ? 'Chưa có gói' : `Còn ${remaining} buổi`}</p>
           <p>Mục tiêu: {s.goal ?? '—'}</p>
           <p>Mục tiêu mỗi tuần: {s.target_per_week} buổi</p>
+          <p>Huỷ sát giờ (30 ngày): {lateCancels}</p>
           <p>Ghi chú sức khoẻ: {s.health_notes ?? '—'}</p>
           <ZaloButton phone={s.phone} />
+          {personalLink && (
+            <div className="space-y-2 rounded border p-3">
+              <h2 className="font-medium">Link cá nhân của học viên</h2>
+              <p className="text-xs text-slate-600">
+                Học viên tự xem số buổi, đổi giờ, khai giờ rảnh và đăng ký chờ slot. Hết hạn sau 30 ngày.
+              </p>
+              <p data-testid="student-link" className="break-all font-mono text-xs select-all">
+                {personalLink}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <ZaloButton
+                  phone={s.phone}
+                  message={`Chào ${s.full_name}, đây là link xem lịch tập và đổi giờ của bạn: ${personalLink}`}
+                  label="Gửi link qua Zalo"
+                />
+                <form action={regenerateStudentLink.bind(null, s.id)}>
+                  <button className="min-h-11 rounded border px-3 text-sm">Tạo link mới</button>
+                </form>
+              </div>
+            </div>
+          )}
           <p className="text-sm" data-testid="bot-status">
             {s.zalo_bot_chat_id
               ? 'Zalo Bot: đã kết nối'

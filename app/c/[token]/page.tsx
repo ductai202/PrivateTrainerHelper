@@ -9,6 +9,12 @@ async function respond(token: string, action: 'confirm' | 'cancel', form: FormDa
   if (!linkSecret()) return;
   const id = verifySessionToken(token, linkSecret());
   if (!id) return;
+  const { data: live } = await createAdminSupabase()
+    .from('sessions')
+    .select('link_revoked_at')
+    .eq('id', id)
+    .maybeSingle();
+  if (!live || live.link_revoked_at) return;
   await studentRespond(id, action, String(form.get('reason') ?? '').trim());
   revalidatePath(`/c/${token}`);
 }
@@ -21,10 +27,13 @@ export default async function StudentLinkPage({ params }: { params: Promise<{ to
   const db = createAdminSupabase();
   const { data: s } = await db
     .from('sessions')
-    .select('status, start_at, end_at, students(full_name), members!sessions_pt_id_fkey(display_name)')
+    .select('status, start_at, end_at, link_revoked_at, students(full_name), members!sessions_pt_id_fkey(display_name)')
     .eq('id', id)
     .maybeSingle();
   if (!s) return <main className="p-4">Không tìm thấy buổi tập.</main>;
+  if (s.link_revoked_at) {
+    return <main className="p-4">Liên kết không hợp lệ hoặc đã hết hạn.</main>;
+  }
 
   const start = new Date(s.start_at);
   const end = new Date(s.end_at);

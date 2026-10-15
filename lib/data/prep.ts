@@ -14,6 +14,13 @@ export interface EveningPrep {
   tomorrowSessions: SessionRow[];
   suggestions: TomorrowSuggestion[];
   remindedSessionIds: Set<string>;
+  waitlist: { studentId: string; name: string; since: Date }[];
+  rescheduleRequests: {
+    id: string;
+    sessionId: string;
+    studentName: string;
+    requestedStart: Date;
+  }[];
 }
 
 /** Everything the "Chuẩn bị ngày mai" screen shows, for one PT (owners get no suggestions). */
@@ -94,5 +101,37 @@ export async function getEveningPrep(
     });
   }
 
-  return { tomorrow, unfinishedToday, tomorrowSessions, suggestions, remindedSessionIds };
+  const [{ data: wl }, { data: rq }] = await Promise.all([
+    supabase
+      .from('waitlist_entries')
+      .select('student_id, created_at, students(full_name)')
+      .eq('active', true)
+      .order('created_at'),
+    supabase
+      .from('reschedule_requests')
+      .select('id, session_id, requested_start, students(full_name)')
+      .eq('status', 'pending')
+      .order('created_at'),
+  ]);
+  const waitlist = (wl ?? []).map((w) => ({
+    studentId: w.student_id,
+    name: (w.students as { full_name: string } | null)?.full_name ?? '',
+    since: new Date(w.created_at),
+  }));
+  const rescheduleRequests = (rq ?? []).map((r) => ({
+    id: r.id,
+    sessionId: r.session_id,
+    studentName: (r.students as { full_name: string } | null)?.full_name ?? '',
+    requestedStart: new Date(r.requested_start),
+  }));
+
+  return {
+    tomorrow,
+    unfinishedToday,
+    tomorrowSessions,
+    suggestions,
+    remindedSessionIds,
+    waitlist,
+    rescheduleRequests,
+  };
 }

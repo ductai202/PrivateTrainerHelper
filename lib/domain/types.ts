@@ -27,6 +27,10 @@ export interface FillInCandidate {
   availability: AvailabilityWindow[];
   sessionsOnDay: number;
   sessionsThisWeek: number;
+  /** Waiting for a slot: invited before everyone else. */
+  onWaitlist?: boolean;
+  /** Student cancellations within 4h of the start, last 30 days. */
+  lateCancels?: number;
 }
 
 export type ChecklistItem = 'outcome' | 'sign' | 'workout';

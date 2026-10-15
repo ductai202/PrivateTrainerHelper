@@ -10,6 +10,7 @@ export default function FillInInvite({
   phone,
   message,
   bookHref,
+  onWaitlist = false,
 }: {
   sessionId: string;
   studentId: string;
@@ -17,10 +18,20 @@ export default function FillInInvite({
   phone: string;
   message: string;
   bookHref: string;
+  onWaitlist?: boolean;
 }) {
   return (
     <li className="space-y-2 rounded border p-3">
-      <div className="font-medium">{name}</div>
+      <div className="flex items-center gap-2">
+        <span data-testid="fill-in-name" className="font-medium">
+          {name}
+        </span>
+        {onWaitlist && (
+          <span data-testid="fill-in-waitlist" className="rounded bg-teal-100 px-2 text-xs text-teal-900">
+            Đang chờ slot
+          </span>
+        )}
+      </div>
       <div className="flex flex-wrap gap-2">
         <ZaloButton
           phone={phone}

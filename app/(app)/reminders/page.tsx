@@ -41,6 +41,24 @@ export default async function RemindersPage() {
       </section>
 
       <section className="space-y-2">
+        <h2 className="font-medium">Yêu cầu đổi giờ</h2>
+        {prep.rescheduleRequests.length === 0 ? (
+          <p className="text-sm text-slate-600">Không có yêu cầu nào đang chờ.</p>
+        ) : (
+          <ul className="space-y-2">
+            {prep.rescheduleRequests.map((r) => (
+              <li key={r.id} data-testid="request-row">
+                <Link href={`/sessions/${r.sessionId}`} className="block rounded border border-amber-300 bg-amber-50 p-3">
+                  <span className="font-medium">{r.studentName}</span> xin đổi sang{' '}
+                  {vnHHmm(r.requestedStart)} {vnDateLabel(r.requestedStart)}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="space-y-2">
         <h2 className="font-medium">Buổi ngày mai</h2>
         <ul className="space-y-2">
           {prep.tomorrowSessions.map((s) => (
@@ -91,6 +109,23 @@ export default async function RemindersPage() {
                 >
                   <button className="min-h-11 rounded bg-teal-700 px-4 text-sm text-white">Đặt buổi</button>
                 </form>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+      <section className="space-y-2">
+        <h2 className="font-medium">Danh sách chờ</h2>
+        {prep.waitlist.length === 0 ? (
+          <p className="text-sm text-slate-600">Chưa có học viên nào muốn tập thêm.</p>
+        ) : (
+          <ul className="space-y-2">
+            {prep.waitlist.map((w) => (
+              <li key={w.studentId} data-testid="waitlist-row" className="rounded border p-3">
+                <Link href={`/students/${w.studentId}`} className="font-medium underline">
+                  {w.name}
+                </Link>
+                <span className="ml-2 text-xs text-slate-600">muốn tập thêm từ {vnDateLabel(w.since)}</span>
               </li>
             ))}
           </ul>

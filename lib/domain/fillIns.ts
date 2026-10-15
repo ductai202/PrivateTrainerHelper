@@ -16,6 +16,12 @@ export function suggestFillIns(
         c.sessionsOnDay === 0 &&
         c.availability.some((w) => w.weekday === weekday && w.from <= from && w.to >= to),
     )
-    .sort((a, b) => a.sessionsThisWeek - b.sessionsThisWeek || b.remaining - a.remaining)
+    .sort(
+      (a, b) =>
+        Number(b.onWaitlist ?? false) - Number(a.onWaitlist ?? false) ||
+        a.sessionsThisWeek - b.sessionsThisWeek ||
+        (a.lateCancels ?? 0) - (b.lateCancels ?? 0) ||
+        b.remaining - a.remaining,
+    )
     .slice(0, limit);
 }
