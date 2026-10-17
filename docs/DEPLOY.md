@@ -21,16 +21,9 @@ GitHub (code) ──bấm Run workflow──▶ test ──▶ migration DB (Sup
 | Tài khoản Vercel | https://vercel.com (đăng nhập bằng GitHub) | chạy web app |
 | Node.js 20+ và `git` trên máy | đã có | chạy vài lệnh một lần |
 
-## Phần 0. Đưa code lên nhánh `main`
+## Phần 0. Nhánh `master`
 
-Repo hiện có code ở nhánh `feat/phase1-mvp`. Pipeline dùng nhánh `main`:
-
-```bash
-git checkout -B main feat/phase1-mvp
-git push -u origin main
-```
-
-Rồi trên GitHub: **Settings → Branches → Default branch** → chọn `main`.
+Code đã nằm trên nhánh `master` (nhánh mặc định) của repo. Pipeline CI/CD dùng nhánh này, không cần làm gì thêm.
 
 ## Phần 1. Supabase (database)
 
@@ -57,7 +50,7 @@ Rồi trên GitHub: **Settings → Branches → Default branch** → chọn `mai
 1. https://vercel.com/new → **Import Git Repository** → chọn `ductai202/PrivateTrainerHelper`.
 2. Ở màn cấu hình:
    - Framework Preset: **Next.js** (tự nhận).
-   - **Production Branch**: `main`.
+   - **Production Branch**: `master`.
    - Mở **Environment Variables**, thêm từng dòng (chọn Environment *Production*):
 
      | Name | Value |
@@ -112,12 +105,12 @@ Rồi trên GitHub: **Settings → Branches → Default branch** → chọn `mai
    | `VERCEL_PROJECT_ID` | `projectId` |
    | `PRODUCTION_URL` | địa chỉ app, ví dụ `https://pt-helper.vercel.app` (không có dấu `/` ở cuối) |
 
-3. (Khuyên dùng) **Settings → Branches → Add rule** cho `main`: bật *Require a pull request before merging* và *Require status checks* (chọn job **Lint, types, unit tests** và **Database, integration and end-to-end tests**). Từ đó không ai (kể cả bạn) đẩy thẳng code chưa test vào `main`.
+3. (Khuyên dùng) **Settings → Branches → Add rule** cho `master`: bật *Require a pull request before merging* và *Require status checks* (chọn job **Lint, types, unit tests** và **Database, integration and end-to-end tests**). Từ đó không ai (kể cả bạn) đẩy thẳng code chưa test vào `master`.
 
 ## Phần 4. Lần deploy đầu tiên
 
 1. GitHub → tab **Actions** → chọn **Deploy** ở cột trái → **Run workflow**.
-2. Nhánh: `main`. Ô *Gõ chữ deploy*: gõ `deploy`. Giữ tick *Chạy migration*. Bấm **Run workflow**.
+2. Nhánh: `master`. Ô *Gõ chữ deploy*: gõ `deploy`. Giữ tick *Chạy migration*. Bấm **Run workflow**.
 3. Pipeline chạy lần lượt (khoảng 10–15 phút):
    1. **Confirm**: kiểm tra bạn đã gõ `deploy`.
    2. **Tests must pass first**: chạy toàn bộ test. Đỏ thì dừng, không deploy gì cả.
@@ -216,13 +209,13 @@ Lưu ý: log runtime của Vercel Hobby chỉ giữ **1 giờ**. Gặp lỗi th�
 ## Quy trình sửa lỗi và cập nhật về sau
 
 ```
-nhánh mới ──▶ sửa code ──▶ push ──▶ mở Pull Request ──▶ CI tự chạy (xanh) ──▶ Merge vào main
+nhánh mới ──▶ sửa code ──▶ push ──▶ mở Pull Request ──▶ CI tự chạy (xanh) ──▶ Merge vào master
                                                                                   │
                                                   Actions → Deploy → Run workflow → gõ "deploy"
 ```
 
 1. `git checkout -b fix/ten-loi`, sửa, `git commit`, `git push`.
-2. Trên GitHub mở **Pull Request** vào `main`. Workflow **CI** tự chạy, xem kết quả ngay trên PR.
+2. Trên GitHub mở **Pull Request** vào `master`. Workflow **CI** tự chạy, xem kết quả ngay trên PR.
 3. CI xanh thì **Merge**.
 4. Khi sẵn sàng đưa lên server: **Actions → Deploy → Run workflow** → gõ `deploy` → Run. Pipeline tự test lại, chạy migration mới (nếu có) rồi deploy.
 
