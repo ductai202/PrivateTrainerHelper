@@ -20,7 +20,10 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   let pts: { id: string; display_name: string }[] = [];
   if (isOwner) {
     const supabase = await createServerSupabase();
-    const { data } = await supabase.from('members').select('id, display_name').eq('role', 'pt');
+    const { data } = await supabase.from('members')
+      .select('id, display_name')
+      .eq('gym_id', member.gymId)
+      .eq('role', 'pt');
     pts = data ?? [];
   }
 

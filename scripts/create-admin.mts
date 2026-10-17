@@ -4,7 +4,9 @@
 //   npm run create-admin -- --gym "Tên phòng tập" --env .env.production.local
 //   npm run create-admin -- --gym "Tên phòng tập" --reset-password   (đặt lại mật khẩu)
 //
-// Options: --email (default ductainguyentran@gmail.com), --name (display name), --env <file>
+// Options: --email (default ductainguyentran@gmail.com), --name (display name), --env <file>,
+//          --no-platform-admin (do not let this account create and switch between centers)
+// Running it again with a different --gym adds another center owned by the same account.
 // The password is asked interactively (hidden) and is never stored anywhere.
 // For automation only: ADMIN_PASSWORD in the environment skips the prompt.
 import { readFileSync } from 'node:fs';
@@ -100,6 +102,7 @@ const result = await ensureOwner(db, {
   gymName,
   displayName: arg('name') ?? 'Chủ gym',
   resetPassword: flag('reset-password'),
+  platformAdmin: !flag('no-platform-admin'),
 });
 
 console.log(

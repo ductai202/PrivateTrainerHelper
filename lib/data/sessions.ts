@@ -1,3 +1,4 @@
+import { getCurrentMember } from '@/lib/auth/currentMember';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { addressFor, type Address } from '@/lib/domain/address';
 import type { SessionLite, SessionStatus } from '@/lib/domain/types';
@@ -79,9 +80,11 @@ export async function listSessions(
   ptId?: string,
 ): Promise<SessionRow[]> {
   const supabase = await createServerSupabase();
+  const { gymId } = await getCurrentMember();
   let q = supabase
     .from('sessions')
     .select(SESSION_SELECT)
+    .eq('gym_id', gymId)
     .gte('start_at', range.start.toISOString())
     .lt('start_at', range.end.toISOString())
     .order('start_at');

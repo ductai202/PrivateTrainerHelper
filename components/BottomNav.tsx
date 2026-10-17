@@ -1,7 +1,15 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { CalendarDays, CalendarRange, MoonStar, Settings, ShieldCheck, Users } from 'lucide-react';
+import {
+  Building2,
+  CalendarDays,
+  CalendarRange,
+  MoonStar,
+  Settings,
+  ShieldCheck,
+  Users,
+} from 'lucide-react';
 
 const TABS = [
   { href: '/today', label: 'Hôm nay', Icon: CalendarDays },
@@ -10,11 +18,23 @@ const TABS = [
   { href: '/students', label: 'Học viên', Icon: Users },
 ];
 const OWNER_TAB = { href: '/owner', label: 'Quản lý', Icon: ShieldCheck };
+const ADMIN_TAB = { href: '/admin', label: 'Trung tâm', Icon: Building2 };
 const SETTINGS_TAB = { href: '/settings', label: 'Cài đặt', Icon: Settings };
 
-export default function BottomNav({ showOwner = false }: { showOwner?: boolean }) {
+export default function BottomNav({
+  showOwner = false,
+  showAdmin = false,
+}: {
+  showOwner?: boolean;
+  showAdmin?: boolean;
+}) {
   const pathname = usePathname();
-  const tabs = [...TABS, ...(showOwner ? [OWNER_TAB] : []), SETTINGS_TAB];
+  const tabs = [
+    ...TABS,
+    ...(showOwner ? [OWNER_TAB] : []),
+    ...(showAdmin ? [ADMIN_TAB] : []),
+    SETTINGS_TAB,
+  ];
   return (
     <nav className="safe-bottom fixed inset-x-0 bottom-0 z-10 border-t border-slate-200 bg-white/95 backdrop-blur">
       <div className="mx-auto flex max-w-3xl">

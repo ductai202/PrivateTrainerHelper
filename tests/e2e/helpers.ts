@@ -4,6 +4,9 @@ export const USERS = {
   owner: 'owner@demo.test',
   ptA: 'pt.a@demo.test',
   ptB: 'pt.b@demo.test',
+  admin: 'admin@demo.test',
+  owner2: 'owner2@demo.test',
+  ptC: 'pt.c@demo.test',
 } as const;
 
 export async function loginAs(page: Page, who: keyof typeof USERS) {

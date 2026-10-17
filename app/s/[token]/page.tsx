@@ -1,5 +1,6 @@
 import { loadPortal, resolveStudent } from '@/lib/student/portal';
 import { vnDateLabel, vnHHmm } from '@/lib/time';
+import MeasurementChart from '@/components/MeasurementChart';
 import AvailabilityForm from './AvailabilityForm';
 import RescheduleRequestForm from './RescheduleRequestForm';
 import { joinWaitlist, leaveWaitlist } from './actions';
@@ -25,6 +26,80 @@ export default async function StudentPortalPage({ params }: { params: Promise<{ 
           {view.remaining === null ? 'Chưa có gói tập' : `Còn ${view.remaining} buổi`}
         </p>
       </header>
+
+      <section className="space-y-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <h2 className="font-medium">Mục tiêu</h2>
+        <p data-testid="portal-goal" className="text-sm">
+          {view.info.goal ?? 'Chưa có mục tiêu, hãy trao đổi thêm với PT.'}
+        </p>
+      </section>
+
+      <section className="space-y-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <h2 className="font-medium">Thực đơn hiện tại</h2>
+        <div data-testid="portal-meal" className="space-y-1 text-sm">
+          {view.info.meal ? (
+            <>
+              <p className="whitespace-pre-wrap">{view.info.meal.content}</p>
+              {view.info.meal.calories !== null && (
+                <p className="text-slate-600">Mục tiêu: {view.info.meal.calories} kcal/ngày</p>
+              )}
+              <p className="text-xs text-slate-500">Áp dụng từ {view.info.meal.since}</p>
+            </>
+          ) : (
+            <p>Chưa có thực đơn.</p>
+          )}
+        </div>
+      </section>
+
+      <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <h2 className="font-medium">Tiến độ</h2>
+        {view.info.measurements.length === 0 ? (
+          <p className="text-sm text-slate-600">Chưa có số đo nào.</p>
+        ) : (
+          <>
+            <MeasurementChart
+              data={[...view.info.measurements].reverse().map((m) => ({
+                date: m.date.slice(5),
+                weight: m.weightKg,
+                waist: m.waistCm,
+              }))}
+            />
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-slate-500">
+                  <th>Ngày</th>
+                  <th>Cân (kg)</th>
+                  <th>Eo (cm)</th>
+                  <th>Mông (cm)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {view.info.measurements.map((m, i) => (
+                  <tr key={i} data-testid="portal-measurement-row">
+                    <td>{m.date}</td>
+                    <td>{m.weightKg ?? '—'}</td>
+                    <td>{m.waistCm ?? '—'}</td>
+                    <td>{m.hipCm ?? '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
+      </section>
+
+      <section className="space-y-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <h2 className="font-medium">Bài tập gần đây</h2>
+        {view.info.workouts.length === 0 && (
+          <p className="text-sm text-slate-600">Chưa có bài tập nào được ghi.</p>
+        )}
+        {view.info.workouts.map((w, i) => (
+          <div key={i} data-testid="portal-workout" className="rounded-xl bg-slate-50 p-3 text-sm">
+            <div className="text-xs text-slate-500">{vnDateLabel(w.date)}</div>
+            <p className="whitespace-pre-wrap">{w.content}</p>
+          </div>
+        ))}
+      </section>
 
       <section className="space-y-3">
         <h2 className="font-medium">Buổi sắp tới</h2>

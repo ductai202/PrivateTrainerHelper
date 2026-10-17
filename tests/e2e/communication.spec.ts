@@ -270,7 +270,8 @@ test.describe('bot speaks in the right voice', () => {
 
     const link = /(https?:\/\/\S+\/s\/\S+)/.exec(help)?.[1];
     expect(link).toBeTruthy();
-    await page.goto(link!);
+    // the link's origin comes from APP_BASE_URL, which may be a tunnel; open the path on the app under test
+    await page.goto(new URL(link!).pathname);
     await expect(page.getByRole('heading', { name: /Lịch tập của Học viên A1/ })).toBeVisible();
   });
 

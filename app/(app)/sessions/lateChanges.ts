@@ -63,7 +63,7 @@ export async function rescheduleSession(
   _prev: RescheduleState,
   form: FormData,
 ): Promise<RescheduleState> {
-  const member = await getCurrentMember();
+  await getCurrentMember();
   const date = String(form.get('date') ?? '');
   const time = String(form.get('time') ?? '');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time)) {
@@ -80,7 +80,7 @@ export async function rescheduleSession(
   if (Number.isNaN(startAt.getTime())) return { error: 'Ngày giờ không hợp lệ' };
   const endAt = new Date(startAt.getTime() + (old.endAt.getTime() - old.startAt.getTime()));
 
-  const moved = await moveSession(supabase, member.gymId, old, startAt, endAt, QUICK_REASONS.reschedule);
+  const moved = await moveSession(supabase, old, startAt, endAt, QUICK_REASONS.reschedule);
   if ('error' in moved) return { error: moved.error };
   revalidatePath('/', 'layout');
   redirect(`/sessions/${moved.id}`);
@@ -91,7 +91,7 @@ export async function approveReschedule(
   requestId: string,
   _prev: RescheduleState,
 ): Promise<RescheduleState> {
-  const member = await getCurrentMember();
+  await getCurrentMember();
   const supabase = await createServerSupabase();
   const { data: req } = await supabase
     .from('reschedule_requests')
@@ -107,7 +107,6 @@ export async function approveReschedule(
 
   const moved = await moveSession(
     supabase,
-    member.gymId,
     old,
     new Date(req.requested_start),
     new Date(req.requested_end),

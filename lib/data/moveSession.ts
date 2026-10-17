@@ -11,7 +11,6 @@ import type { Database } from '@/lib/supabase/database.types';
  */
 export async function moveSession(
   db: SupabaseClient<Database>,
-  gymId: string,
   old: SessionRow,
   startAt: Date,
   endAt: Date,
@@ -32,10 +31,13 @@ export async function moveSession(
     return { error: `Trùng lịch với ${who} lúc ${vnHHmm(clash.startAt)}–${vnHHmm(clash.endAt)}` };
   }
 
+  const { data: owner } = await db.from('students').select('gym_id').eq('id', old.studentId).single();
+  if (!owner) return { error: 'Không tìm thấy học viên' };
+
   const { data: created, error } = await db
     .from('sessions')
     .insert({
-      gym_id: gymId,
+      gym_id: owner.gym_id,
       pt_id: old.ptId,
       student_id: old.studentId,
       package_id: old.packageId,

@@ -57,3 +57,49 @@ insert into sessions (gym_id, pt_id, student_id, package_id, start_at, end_at, s
    'dddddddd-0000-0000-0000-000000000001', now() - interval '3 days', now() - interval '3 days' + interval '1 hour', 'done', true, true),
   ('11111111-0000-0000-0000-000000000001', 'bbbbbbbb-0000-0000-0000-000000000003', 'cccccccc-0000-0000-0000-000000000003',
    'dddddddd-0000-0000-0000-000000000003', now() - interval '2 days', now() - interval '2 days' + interval '1 hour', 'done', false, false);
+
+-- ---------------------------------------------------------------------------------------------
+-- Second center + a platform admin who owns both centers (demo password demo12345, local only).
+--   admin@demo.test   platform admin, owner of Demo Gym and Demo Gym 2
+--   owner2@demo.test  owner of Demo Gym 2 only
+--   pt.c@demo.test    PT in Demo Gym 2
+insert into auth.users (
+  instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+  confirmation_token, recovery_token, email_change, email_change_token_new
+) values
+  ('00000000-0000-0000-0000-000000000000', 'aaaaaaaa-0000-0000-0000-000000000010', 'authenticated', 'authenticated',
+   'admin@demo.test', crypt('demo12345', gen_salt('bf')), now(),
+   '{"provider":"email","providers":["email"],"platform_admin":true}', '{}', now(), now(), '', '', '', ''),
+  ('00000000-0000-0000-0000-000000000000', 'aaaaaaaa-0000-0000-0000-000000000011', 'authenticated', 'authenticated',
+   'owner2@demo.test', crypt('demo12345', gen_salt('bf')), now(),
+   '{"provider":"email","providers":["email"]}', '{}', now(), now(), '', '', '', ''),
+  ('00000000-0000-0000-0000-000000000000', 'aaaaaaaa-0000-0000-0000-000000000012', 'authenticated', 'authenticated',
+   'pt.c@demo.test', crypt('demo12345', gen_salt('bf')), now(),
+   '{"provider":"email","providers":["email"]}', '{}', now(), now(), '', '', '', '');
+
+insert into auth.identities (id, user_id, provider_id, identity_data, provider, created_at, updated_at, last_sign_in_at)
+select gen_random_uuid(), u.id, u.id::text,
+       jsonb_build_object('sub', u.id::text, 'email', u.email),
+       'email', now(), now(), now()
+from auth.users u
+where u.email in ('admin@demo.test', 'owner2@demo.test', 'pt.c@demo.test');
+
+insert into gyms (id, name) values ('33333333-0000-0000-0000-000000000003', 'Demo Gym 2');
+
+insert into members (id, gym_id, user_id, display_name, role, gender, birth_year, created_at) values
+  ('bbbbbbbb-0000-0000-0000-000000000010', '11111111-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000010', 'Admin', 'owner', 'male', 1990, now() - interval '2 minutes'),
+  ('bbbbbbbb-0000-0000-0000-000000000011', '33333333-0000-0000-0000-000000000003', 'aaaaaaaa-0000-0000-0000-000000000010', 'Admin', 'owner', 'male', 1990, now() - interval '1 minute'),
+  ('bbbbbbbb-0000-0000-0000-000000000012', '33333333-0000-0000-0000-000000000003', 'aaaaaaaa-0000-0000-0000-000000000011', 'Chủ gym 2', 'owner', 'female', 1984, now()),
+  ('bbbbbbbb-0000-0000-0000-000000000013', '33333333-0000-0000-0000-000000000003', 'aaaaaaaa-0000-0000-0000-000000000012', 'PT Cường', 'pt', 'male', 1993, now());
+
+insert into students (id, gym_id, pt_id, full_name, phone, birth_year, gender, height_cm, goal) values
+  ('cccccccc-0000-0000-0000-000000000011', '33333333-0000-0000-0000-000000000003', 'bbbbbbbb-0000-0000-0000-000000000013',
+   'Học viên C1', '0900000011', 1996, 'female', 162, 'Tăng cơ mông');
+
+insert into packages (id, gym_id, student_id, total_sessions, start_date) values
+  ('dddddddd-0000-0000-0000-000000000011', '33333333-0000-0000-0000-000000000003', 'cccccccc-0000-0000-0000-000000000011', 10, current_date - 10);
+
+insert into student_availability (gym_id, student_id, weekday, from_time, to_time)
+select '33333333-0000-0000-0000-000000000003', 'cccccccc-0000-0000-0000-000000000011', d, '06:00', '21:00'
+from generate_series(0, 6) d;

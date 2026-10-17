@@ -1,12 +1,10 @@
 import BottomNav from '@/components/BottomNav';
+import CenterSwitcher from '@/components/CenterSwitcher';
 import { Avatar } from '@/components/ui/Avatar';
 import { getCurrentMember } from '@/lib/auth/currentMember';
-import { createServerSupabase } from '@/lib/supabase/server';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const member = await getCurrentMember();
-  const supabase = await createServerSupabase();
-  const { data: gym } = await supabase.from('gyms').select('name').eq('id', member.gymId).maybeSingle();
 
   return (
     <div className="mx-auto min-h-screen max-w-3xl pb-24">
@@ -15,18 +13,25 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           PT
         </span>
         <div className="min-w-0 flex-1 leading-tight">
-          <div className="truncate text-sm font-semibold text-slate-900">{gym?.name ?? 'PT Helper'}</div>
+          <div data-testid="center-name" className="truncate text-sm font-semibold text-slate-900">
+            {member.gymName || 'PT Helper'}
+          </div>
           <div className="truncate text-xs text-slate-500">
-            {member.role === 'owner' ? 'Chủ gym' : 'Huấn luyện viên'}
+            {member.isPlatformAdmin ? 'Admin' : member.role === 'owner' ? 'Chủ gym' : 'Huấn luyện viên'}
           </div>
         </div>
+        {member.centers.length > 1 && (
+          <CenterSwitcher centers={member.centers} activeGymId={member.gymId} />
+        )}
         <div className="flex items-center gap-2">
-          <span className="max-w-28 truncate text-sm text-slate-700">{member.displayName}</span>
+          <span className="hidden max-w-28 truncate text-sm text-slate-700 sm:inline">
+            {member.displayName}
+          </span>
           <Avatar name={member.displayName} size={32} />
         </div>
       </header>
       {children}
-      <BottomNav showOwner={member.role === 'owner'} />
+      <BottomNav showOwner={member.role === 'owner'} showAdmin={member.isPlatformAdmin} />
     </div>
   );
 }

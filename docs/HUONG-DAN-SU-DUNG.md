@@ -86,3 +86,12 @@ Bot chỉ hiểu vài từ khoá, mọi thứ khác **không làm thay đổi bu
 | `stop` | Ngắt kết nối |
 | Mã 6 ký tự | Kết nối tài khoản (một lần) |
 | Bất cứ câu nào khác | Nhắc ngắn cách dùng, **tối đa một lần mỗi 10 phút**, sau đó im lặng |
+
+## Ai thấy gì
+
+| Vai trò | Đăng nhập | Thấy và sửa được |
+|---|---|---|
+| PT | có | học viên, lịch, tiến độ, thực đơn, bài tập của **chính mình**; không thấy học viên của PT khác |
+| Chủ trung tâm | có | toàn bộ PT và học viên của **trung tâm mình** (Quản lý → bấm tên PT để xem học viên và buổi sắp tới của PT đó); thêm học viên cho bất kỳ PT nào |
+| Admin nền tảng | có | **mọi trung tâm**: tab *Trung tâm* liệt kê các trung tâm (số PT, học viên, buổi tháng này), đổi trung tâm bằng ô chọn ở đầu trang, xem và sửa tất cả; tạo trung tâm mới và chủ trung tâm |
+| Học viên | không cần tài khoản | bấm link cá nhân: xem lịch sắp tới, số buổi còn lại, mục tiêu, thực đơn hiện tại, số đo và biểu đồ, bài tập 3 buổi gần nhất (chỉ đọc); xin đổi giờ, khai giờ rảnh, vào danh sách chờ |

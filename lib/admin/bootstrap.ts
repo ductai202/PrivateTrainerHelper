@@ -8,6 +8,11 @@ export interface EnsureOwnerInput {
   displayName: string;
   /** Overwrite the password of an account that already exists. Off by default. */
   resetPassword?: boolean;
+  /**
+   * Mark the account as platform admin (can create and switch between centers). Stored in
+   * `app_metadata`, which only the service role can write. Never removed by this function.
+   */
+  platformAdmin?: boolean;
 }
 
 export interface EnsureOwnerResult {
@@ -63,21 +68,17 @@ export async function ensureOwner(
     if (error) throw new Error(`Không đặt lại được mật khẩu: ${error.message}`);
   }
 
-  // an existing membership decides the gym; otherwise find or create the gym by name
-  const { data: existing } = await db
-    .from('members')
-    .select('id, gym_id, role')
-    .eq('user_id', userId)
-    .limit(1)
-    .maybeSingle();
-  if (existing) {
-    if (existing.role !== 'owner') {
-      const { error } = await db.from('members').update({ role: 'owner' }).eq('id', existing.id);
-      if (error) throw new Error(`Không nâng quyền được: ${error.message}`);
+  if (input.platformAdmin) {
+    const { data: current } = await db.auth.admin.getUserById(userId);
+    if (current.user?.app_metadata?.platform_admin !== true) {
+      const { error } = await db.auth.admin.updateUserById(userId, {
+        app_metadata: { ...(current.user?.app_metadata ?? {}), platform_admin: true },
+      });
+      if (error) throw new Error(`Không đặt được quyền admin: ${error.message}`);
     }
-    return { created, userId, gymId: existing.gym_id, memberId: existing.id };
   }
 
+  // find or create the center by name, then make sure this user owns it
   let gymId: string;
   const { data: gym } = await db.from('gyms').select('id').eq('name', input.gymName).limit(1).maybeSingle();
   if (gym) {
@@ -86,6 +87,20 @@ export async function ensureOwner(
     const { data: made, error } = await db.from('gyms').insert({ name: input.gymName }).select('id').single();
     if (error || !made) throw new Error(`Không tạo được phòng tập: ${error?.message}`);
     gymId = made.id;
+  }
+
+  const { data: existing } = await db
+    .from('members')
+    .select('id, role')
+    .eq('user_id', userId)
+    .eq('gym_id', gymId)
+    .maybeSingle();
+  if (existing) {
+    if (existing.role !== 'owner') {
+      const { error } = await db.from('members').update({ role: 'owner' }).eq('id', existing.id);
+      if (error) throw new Error(`Không nâng quyền được: ${error.message}`);
+    }
+    return { created, userId, gymId, memberId: existing.id };
   }
 
   const { data: member, error } = await db

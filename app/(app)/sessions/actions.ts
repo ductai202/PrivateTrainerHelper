@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getCurrentMember } from '@/lib/auth/currentMember';
+import { studentGymId } from '@/lib/data/students';
 import { findConflicts } from '@/lib/domain/conflicts';
 import { toSessionRow, SESSION_SELECT } from '@/lib/data/sessions';
 import { vnDayRange, vnHHmm } from '@/lib/time';
@@ -27,7 +28,7 @@ export async function createSession(_prev: FormState, form: FormData): Promise<F
   const supabase = await createServerSupabase();
   const { data: student } = await supabase
     .from('students')
-    .select('id, pt_id')
+    .select('id, pt_id, gym_id')
     .eq('id', studentId)
     .maybeSingle();
   if (!student) return { error: 'Không tìm thấy học viên' };
@@ -57,7 +58,7 @@ export async function createSession(_prev: FormState, form: FormData): Promise<F
     .maybeSingle();
 
   const { error } = await supabase.from('sessions').insert({
-    gym_id: member.gymId,
+    gym_id: student.gym_id,
     pt_id: ptId,
     student_id: studentId,
     package_id: pkg?.id ?? null,
@@ -118,10 +119,12 @@ export async function logMessage(p: {
   kind: 'reminder' | 'fill_in';
   content: string;
 }) {
-  const member = await getCurrentMember();
+  await getCurrentMember();
+  const gymId = await studentGymId(p.studentId);
+  if (!gymId) return;
   const supabase = await createServerSupabase();
   await supabase.from('message_log').insert({
-    gym_id: member.gymId,
+    gym_id: gymId,
     session_id: p.sessionId ?? null,
     student_id: p.studentId,
     channel: 'manual',

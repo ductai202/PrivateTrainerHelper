@@ -1,3 +1,4 @@
+import { getCurrentMember } from '@/lib/auth/currentMember';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { vnDayRange } from '@/lib/time';
 import SessionForm from './SessionForm';
@@ -9,9 +10,11 @@ export default async function NewSessionPage({
 }) {
   const sp = await searchParams;
   const supabase = await createServerSupabase();
+  const { gymId } = await getCurrentMember();
   const { data } = await supabase
     .from('students')
     .select('id, full_name')
+    .eq('gym_id', gymId)
     .eq('archived', false)
     .order('full_name');
   const today = new Date(vnDayRange(new Date()).start.getTime() + 7 * 3600000)

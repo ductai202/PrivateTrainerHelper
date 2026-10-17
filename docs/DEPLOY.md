@@ -2,7 +2,7 @@
 
 Mục tiêu: đưa app lên mạng (Supabase + Vercel), có tài khoản admin riêng, và sau này sửa code xong chỉ cần bấm một nút trên GitHub để cập nhật.
 
-Thời gian: khoảng 45 phút lần đầu. Chi phí để chạy thử: 0đ (gói free). Khi dùng thật nên dùng Supabase Pro (khoảng 25 USD/tháng) vì gói free không có sao lưu và tự tạm dừng khi ít dùng.
+Thời gian: khoảng 45 phút lần đầu. Chi phí để chạy thử: 0đ (gói free). Khi dùng thật nên dùng Supabase Pro (khoảng 25 USD/tháng) và Vercel Pro (20 USD/tháng, vì gói Hobby chỉ cho mục đích phi thương mại). Xem bảng chi phí cuối trang.
 
 ```
 GitHub (code) ──bấm Run workflow──▶ test ──▶ migration DB (Supabase) ──▶ build + deploy (Vercel)
@@ -41,13 +41,13 @@ Rồi trên GitHub: **Settings → Branches → Default branch** → chọn `mai
 2. Chờ project tạo xong (1–2 phút).
 3. **Tắt đăng ký tự do** (rất quan trọng, để không ai tự tạo tài khoản được): *Authentication → Sign In / Providers → Email* → tắt **Allow new users to sign up** → Save.
 4. **Bật extension cho nhắc tự động**: *Database → Extensions* → tìm `pg_cron` bật, tìm `pg_net` bật.
-5. Lấy 4 giá trị, chép vào một file tạm (sau này dán vào Vercel/GitHub):
+5. (Supabase đang chuyển dần khỏi khoá `anon`/`service_role` sang `sb_publishable_`/`sb_secret_`; cả hai kiểu chạy song song. Tên biến trong app giữ nguyên.) Lấy 4 giá trị, chép vào một file tạm (sau này dán vào Vercel/GitHub):
 
    | Tên | Lấy ở đâu |
    |---|---|
    | `NEXT_PUBLIC_SUPABASE_URL` | *Project Settings → API* → **Project URL** |
-   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | *Project Settings → API Keys* → `anon` / publishable key |
-   | `SUPABASE_SERVICE_ROLE_KEY` | cùng trang → `service_role` / secret key (bấm Reveal). **Không chia sẻ cho ai** |
+   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | *Project Settings → API Keys* → **Publishable key** (`sb_publishable_...`). Khoá cũ `anon` (bắt đầu `eyJ`) cũng dùng được |
+   | `SUPABASE_SERVICE_ROLE_KEY` | cùng trang → **Secret key** (`sb_secret_...`, bấm Reveal). Khoá cũ `service_role` cũng dùng được. **Không chia sẻ cho ai** |
    | `SUPABASE_PROJECT_REF` | *Project Settings → General* → **Reference ID** (chuỗi ~20 ký tự) |
 
 6. Tạo **Access Token** cho GitHub dùng: https://supabase.com/dashboard/account/tokens → **Generate new token** → tên `github-deploy` → copy (chỉ hiện một lần). Đây là `SUPABASE_ACCESS_TOKEN`.
@@ -136,7 +136,7 @@ Lỗi thường gặp ở bước này:
 
 ## Phần 5. Tạo tài khoản admin (một lần)
 
-Tài khoản admin cố định là `ductainguyentran@gmail.com`. Chạy trên máy bạn (cần file env trỏ tới Supabase **thật**):
+Tài khoản admin cố định là `ductainguyentran@gmail.com`. Chạy trên máy bạn (cần file env trỏ tới Supabase **thật**). Admin này là **admin nền tảng**: thấy và sửa mọi trung tâm.
 
 1. Tạo file `.env.production.local` trong thư mục dự án (file này đã nằm trong `.gitignore`, không bị commit):
    ```
@@ -153,6 +153,8 @@ Tài khoản admin cố định là `ductainguyentran@gmail.com`. Chạy trên m
 
 Script chạy lại bao nhiêu lần cũng an toàn: không tạo trùng tài khoản hay phòng tập.
 
+**Thêm trung tâm thứ hai:** chạy lại với tên khác, ví dụ `npm run create-admin -- --gym "Trung tâm Cầu Giấy" --env .env.production.local`. Admin sẽ thấy cả hai trung tâm. Có thể tạo trung tâm và chủ trung tâm ngay trong app: đăng nhập admin → tab **Trung tâm**. Chủ một trung tâm chỉ thấy trung tâm của mình; admin nền tảng đổi qua lại bằng ô chọn trung tâm ở đầu trang.
+
 ## Phần 6. Bật nhắc tự động (một lần)
 
 Vào Supabase → **SQL Editor** → New query, dán (thay hai chỗ) rồi **Run**:
@@ -166,7 +168,7 @@ Kiểm tra:
 select jobname, schedule, active from cron.job;
 select status, return_message, start_time from cron.job_run_details order by start_time desc limit 5;
 ```
-Sau 10 phút phải thấy dòng `succeeded`. Từ đây app tự nhắc PT trước buổi 90 phút, nhắc tối, và hỏi học viên qua bot.
+Sau 10 phút phải thấy dòng `succeeded`. (Migration 0010 đặt thời gian chờ request của `pg_net` là 30 giây, mặc định 5 giây quá ngắn khi app có AI chạy.) Từ đây app tự nhắc PT trước buổi 90 phút, nhắc tối, và hỏi học viên qua bot.
 
 ## Phần 7. Zalo Bot (tuỳ chọn)
 
@@ -185,6 +187,31 @@ Sau 10 phút phải thấy dòng `succeeded`. Từ đây app tự nhắc PT trư
 - [ ] **Cài đặt → Nhận thông báo qua Zalo**: nhắn mã cho bot, bot trả lời đã kết nối.
 - [ ] Thêm app vào màn hình chính, bật thông báo, huỷ một buổi và thấy thông báo về.
 - [ ] Học viên mở link cá nhân (không đăng nhập) thấy lịch của mình.
+
+## Giữ Supabase free không bị tạm dừng
+
+Supabase tạm dừng project Free khi **một tuần liền** gần như không có hoạt động database (sau khi dừng, bạn có 90 ngày để khôi phục trong Dashboard). Gói trả phí không bị dừng.
+
+App đã có sẵn hai lớp chống dừng, không cần "trick" thủ công:
+
+1. `pg_cron` ở phần 6 gọi `/api/cron/tick` mỗi 10 phút, mỗi lần đó app đọc database.
+2. Workflow **Keepalive** (`.github/workflows/keepalive.yml`) chạy **mỗi ngày** và gọi `PRODUCTION_URL/api/health`; endpoint này chạy một truy vấn thật vào database. Nếu lỗi, workflow đỏ và GitHub gửi mail cho bạn.
+
+Dùng `PRODUCTION_URL` là secret ở phần 3 (workflow chỉ đọc secret này, không cần thêm gì). Ping mỗi ngày an toàn hơn mỗi 6 ngày vì dư địa 7 ngày cho phép lỡ vài lần chạy.
+
+## Xem log ở đâu
+
+| Cần xem | Chỗ xem | Lưu giữ |
+|---|---|---|
+| Lỗi của web app (server action, API, webhook Zalo) | Vercel → project → **Logs** (lọc `Error`, hoặc theo đường dẫn như `/api/zalo-bot/webhook`). Hoặc trên máy: `npx vercel logs --environment production --since 1h` | **Hobby 1 giờ**, Pro 1 ngày, Pro + Observability Plus 30 ngày |
+| Build / deploy lỗi | Vercel → project → **Deployments** → chọn bản → *Build Logs*; hoặc log của job trong GitHub Actions | lâu dài |
+| Pipeline CI/CD | GitHub → **Actions** → chọn lần chạy → từng bước | lâu dài |
+| Truy vấn database, đăng nhập, API | Supabase → **Logs** (menu trái; có *API*, *Postgres*, *Auth*) | gói Free ngắn (khoảng 1 ngày) |
+| Nhắc tự động có chạy không | Supabase SQL Editor: `select status, return_message, start_time from cron.job_run_details order by start_time desc limit 20;` | vài ngày gần nhất |
+| App đã gửi tin gì cho ai | bảng `message_log` (Supabase → Table Editor) | lâu dài |
+| Bot Zalo nhận tin gì | bảng `bot_updates` | lâu dài |
+
+Lưu ý: log runtime của Vercel Hobby chỉ giữ **1 giờ**. Gặp lỗi thì xem ngay, hoặc dùng bảng `message_log` / `bot_updates` để dò lại việc đã xảy ra. Dùng Pro (đằng nào cũng cần cho thương mại) thì được 1 ngày.
 
 ## Quy trình sửa lỗi và cập nhật về sau
 
@@ -209,8 +236,9 @@ Ghi chú:
 
 | Dịch vụ | Gói | Giá | Ghi chú |
 |---|---|---|---|
-| Vercel | Hobby | 0đ | đủ cho một phòng gym; không dùng thương mại chính thức thì cân nhắc Pro |
-| Supabase | Free | 0đ | tạm dừng sau 7 ngày không dùng, không sao lưu |
+| Vercel | Hobby | 0đ | chỉ cho mục đích **phi thương mại**; dùng cho phòng gym kinh doanh thì cần Pro. Log chỉ giữ 1 giờ |
+| Vercel | Pro | 20 USD/tháng | dùng thương mại, log giữ 1 ngày |
+| Supabase | Free | 0đ | 2 project, DB 500 MB, 1 GB file, 50.000 người dùng/tháng; tạm dừng nếu 7 ngày không có hoạt động (đã có keepalive), không sao lưu |
 | Supabase | Pro | ~25 USD/tháng | sao lưu hằng ngày, không tạm dừng; nên dùng khi có dữ liệu thật |
 | OpenRouter | model `:free` | 0đ | giới hạn số lượt mỗi ngày; chỉ cần cho nút gợi ý bài tập |
 | Zalo Bot | miễn phí | 0đ | |

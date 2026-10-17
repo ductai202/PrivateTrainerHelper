@@ -23,6 +23,9 @@ export async function createStudent(_prev: FormState, form: FormData): Promise<F
 
   const supabase = await createServerSupabase();
   const ptId = member.role === 'owner' && str(form, 'pt_id') ? str(form, 'pt_id') : member.id;
+  if (member.role === 'owner' && ptId === member.id) {
+    return { error: 'Vui lòng chọn PT phụ trách học viên này' };
+  }
   const { data: student, error } = await supabase
     .from('students')
     .insert({

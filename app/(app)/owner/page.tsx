@@ -29,14 +29,20 @@ export default async function OwnerPage({ searchParams }: { searchParams: Promis
 
   const supabase = await createServerSupabase();
   const [{ data: pts }, { data: sessions }, { data: students }] = await Promise.all([
-    supabase.from('members').select('id, display_name').eq('role', 'pt').order('display_name'),
+    supabase
+      .from('members')
+      .select('id, display_name')
+      .eq('gym_id', member.gymId)
+      .eq('role', 'pt')
+      .order('display_name'),
     supabase
       .from('sessions')
       .select('id, pt_id, status, student_signed, start_at, students(full_name)')
+      .eq('gym_id', member.gymId)
       .gte('start_at', range.start.toISOString())
       .lt('start_at', range.end.toISOString())
       .order('start_at'),
-    supabase.from('students').select('id, pt_id').eq('archived', false),
+    supabase.from('students').select('id, pt_id').eq('gym_id', member.gymId).eq('archived', false),
   ]);
 
   const rows = (pts ?? []).map((p) => {
@@ -78,7 +84,11 @@ export default async function OwnerPage({ searchParams }: { searchParams: Promis
         <tbody>
           {rows.map((r) => (
             <tr key={r.id}>
-              <td>{r.name}</td>
+              <td>
+                <Link href={`/owner/pts/${r.id}`} className="font-medium underline">
+                  {r.name}
+                </Link>
+              </td>
               <td data-testid="done">{r.done}</td>
               <td data-testid="unsigned">{r.unsigned}</td>
               <td data-testid="cancelled">{r.cancelled}</td>

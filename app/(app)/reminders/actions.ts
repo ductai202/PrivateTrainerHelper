@@ -13,7 +13,7 @@ export async function bookSuggestion(
   startIso: string,
   endIso: string,
 ): Promise<void> {
-  const member = await getCurrentMember();
+  await getCurrentMember();
   const startAt = new Date(startIso);
   const endAt = new Date(endIso);
   if (Number.isNaN(startAt.getTime()) || Number.isNaN(endAt.getTime()) || endAt <= startAt) return;
@@ -21,7 +21,7 @@ export async function bookSuggestion(
   const supabase = await createServerSupabase();
   const { data: student } = await supabase
     .from('students')
-    .select('id, pt_id')
+    .select('id, pt_id, gym_id')
     .eq('id', studentId)
     .maybeSingle();
   if (!student) return;
@@ -47,7 +47,7 @@ export async function bookSuggestion(
     .maybeSingle();
 
   await supabase.from('sessions').insert({
-    gym_id: member.gymId,
+    gym_id: student.gym_id,
     pt_id: student.pt_id,
     student_id: studentId,
     package_id: pkg?.id ?? null,

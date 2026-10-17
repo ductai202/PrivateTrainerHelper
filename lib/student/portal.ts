@@ -163,15 +163,45 @@ export interface PortalView {
   }[];
   availability: { weekday: number; from: string; to: string }[];
   onWaitlist: boolean;
+  /** Read-only details about the student, shown to the student themself. */
+  info: {
+    goal: string | null;
+    meal: { content: string; calories: number | null; since: string } | null;
+    /** Newest first. */
+    measurements: { date: string; weightKg: number | null; waistCm: number | null; hipCm: number | null }[];
+    workouts: { date: Date; content: string }[];
+  };
 }
 
 export async function loadPortal(student: PortalStudent, now = new Date()): Promise<PortalView> {
   const db = createAdminSupabase();
-  const [{ data: pkgs }, { data: sessions }, { data: av }, { data: wl }] = await Promise.all([
+  const [{ data: pkgs }, { data: sessions }, { data: av }, { data: wl }, { data: profile }, { data: meals }, { data: meas }, { data: done }] = await Promise.all([
     db.from('packages').select('total_sessions').eq('student_id', student.id),
     db.from('sessions').select(LITE_COLUMNS).eq('student_id', student.id),
     db.from('student_availability').select('weekday, from_time, to_time').eq('student_id', student.id),
     db.from('waitlist_entries').select('id').eq('student_id', student.id).eq('active', true),
+    db.from('students').select('goal').eq('id', student.id).single(),
+    db
+      .from('meal_plans')
+      .select('content, calories, effective_from')
+      .eq('student_id', student.id)
+      .order('effective_from', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(1),
+    db
+      .from('body_measurements')
+      .select('measured_on, weight_kg, waist_cm, hip_cm')
+      .eq('student_id', student.id)
+      .order('measured_on', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(8),
+    db
+      .from('sessions')
+      .select('start_at, workout_content')
+      .eq('student_id', student.id)
+      .not('workout_content', 'is', null)
+      .order('start_at', { ascending: false })
+      .limit(3),
   ]);
 
   const all = ((sessions ?? []) as RawSession[]).map(toLite);
@@ -221,5 +251,18 @@ export async function loadPortal(student: PortalStudent, now = new Date()): Prom
       to: w.to_time.slice(0, 5),
     })),
     onWaitlist: (wl ?? []).length > 0,
+    info: {
+      goal: profile?.goal ?? null,
+      meal: meals?.[0]
+        ? { content: meals[0].content, calories: meals[0].calories, since: meals[0].effective_from }
+        : null,
+      measurements: (meas ?? []).map((m) => ({
+        date: m.measured_on,
+        weightKg: m.weight_kg === null ? null : Number(m.weight_kg),
+        waistCm: m.waist_cm === null ? null : Number(m.waist_cm),
+        hipCm: m.hip_cm === null ? null : Number(m.hip_cm),
+      })),
+      workouts: (done ?? []).map((w) => ({ date: new Date(w.start_at), content: w.workout_content as string })),
+    },
   };
 }

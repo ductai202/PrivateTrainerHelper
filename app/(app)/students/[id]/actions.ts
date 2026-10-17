@@ -2,6 +2,7 @@
 import { revalidatePath } from 'next/cache';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getCurrentMember } from '@/lib/auth/currentMember';
+import { studentGymId } from '@/lib/data/students';
 import { vnDayRange } from '@/lib/time';
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? '').trim();
@@ -28,7 +29,9 @@ export async function updateStudentProfile(studentId: string, form: FormData) {
 }
 
 export async function addMeasurement(studentId: string, form: FormData) {
-  const member = await getCurrentMember();
+  await getCurrentMember();
+  const gymId = await studentGymId(studentId);
+  if (!gymId) return;
   const supabase = await createServerSupabase();
   const m = {
     weight_kg: num(form, 'weight_kg'),
@@ -39,7 +42,7 @@ export async function addMeasurement(studentId: string, form: FormData) {
     arm_cm: num(form, 'arm_cm'),
     body_fat_pct: num(form, 'body_fat_pct'),
   };
-  const base = { gym_id: member.gymId, student_id: studentId };
+  const base = { gym_id: gymId, student_id: studentId };
   if (Object.values(m).some((v) => v !== null)) {
     await supabase.from('body_measurements').insert({ ...base, measured_on: todayIso(), ...m });
   }
@@ -49,7 +52,7 @@ export async function addMeasurement(studentId: string, form: FormData) {
   if (note || hasPhoto) {
     let photoPath: string | null = null;
     if (photo instanceof File && photo.size > 0) {
-      const path = `${member.gymId}/${studentId}/${crypto.randomUUID()}.jpg`;
+      const path = `${gymId}/${studentId}/${crypto.randomUUID()}.jpg`;
       const up = await supabase.storage
         .from('progress-photos')
         .upload(path, photo, { contentType: photo.type || 'image/jpeg' });
@@ -63,12 +66,14 @@ export async function addMeasurement(studentId: string, form: FormData) {
 }
 
 export async function addMealPlan(studentId: string, form: FormData) {
-  const member = await getCurrentMember();
+  await getCurrentMember();
   const content = str(form, 'content');
   if (!content) return;
+  const gymId = await studentGymId(studentId);
+  if (!gymId) return;
   const supabase = await createServerSupabase();
   await supabase.from('meal_plans').insert({
-    gym_id: member.gymId,
+    gym_id: gymId,
     student_id: studentId,
     effective_from: todayIso(),
     content,
@@ -81,12 +86,14 @@ export async function addMealPlan(studentId: string, form: FormData) {
 }
 
 export async function addPackage(studentId: string, form: FormData) {
-  const member = await getCurrentMember();
+  await getCurrentMember();
   const total = num(form, 'total_sessions');
   if (!total || total <= 0) return;
+  const gymId = await studentGymId(studentId);
+  if (!gymId) return;
   const supabase = await createServerSupabase();
   await supabase.from('packages').insert({
-    gym_id: member.gymId,
+    gym_id: gymId,
     student_id: studentId,
     total_sessions: total,
     start_date: todayIso(),

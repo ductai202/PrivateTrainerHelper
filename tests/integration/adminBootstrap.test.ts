@@ -216,3 +216,80 @@ describe('create-admin script', () => {
     expect(short.stderr).toContain('quá ngắn');
   }, 60000);
 });
+
+describe('ensureOwner with several centers', () => {
+  const email = `multi.${STAMP}@bootstrap.test`;
+  const gymA = `Center A ${STAMP}`;
+  const gymB = `Center B ${STAMP}`;
+  let userId = '';
+
+  it('creates the first center and flags the account as platform admin', async () => {
+    const r = await ensureOwner(admin, {
+      email,
+      password: 'multi-password-1',
+      gymName: gymA,
+      displayName: 'Admin Đa',
+      platformAdmin: true,
+    });
+    userId = r.userId;
+    createdUsers.push(userId);
+    createdGyms.push(r.gymId);
+    const { data } = await admin.auth.admin.getUserById(userId);
+    expect(data.user!.app_metadata.platform_admin).toBe(true);
+  });
+
+  it('adds a second center for the same account instead of reusing the first', async () => {
+    const r = await ensureOwner(admin, {
+      email,
+      password: 'ignored-1',
+      gymName: gymB,
+      displayName: 'Admin Đa',
+      platformAdmin: true,
+    });
+    expect(r.created).toBe(false);
+    expect(r.userId).toBe(userId);
+    createdGyms.push(r.gymId);
+
+    const { data: m } = await admin.from('members').select('gym_id, role').eq('user_id', userId);
+    expect(m).toHaveLength(2);
+    expect(new Set(m!.map((x) => x.gym_id)).size).toBe(2);
+    expect(m!.every((x) => x.role === 'owner')).toBe(true);
+  });
+
+  it('is idempotent per center', async () => {
+    await ensureOwner(admin, { email, password: 'x-password-2', gymName: gymB, displayName: 'Admin Đa' });
+    const { data: m } = await admin.from('members').select('id').eq('user_id', userId);
+    expect(m).toHaveLength(2);
+  });
+
+  it('does not remove the platform flag when run without it', async () => {
+    await ensureOwner(admin, { email, password: 'x-password-3', gymName: gymA, displayName: 'Admin Đa' });
+    const { data } = await admin.auth.admin.getUserById(userId);
+    expect(data.user!.app_metadata.platform_admin).toBe(true);
+  });
+
+  it('does not make an ordinary owner a platform admin', async () => {
+    const plain = `plain.${STAMP}@bootstrap.test`;
+    const r = await ensureOwner(admin, {
+      email: plain,
+      password: 'plain-password-1',
+      gymName: gymA,
+      displayName: 'Chủ thường',
+    });
+    createdUsers.push(r.userId);
+    const { data } = await admin.auth.admin.getUserById(r.userId);
+    expect(data.user!.app_metadata.platform_admin).toBeUndefined();
+  });
+
+  it('lets the admin see both centers and a center owner see only one (through the API)', async () => {
+    const c = anon();
+    await c.auth.signInWithPassword({ email, password: 'multi-password-1' });
+    const { data: gyms } = await c.from('gyms').select('id').in('name', [gymA, gymB]);
+    expect(gyms).toHaveLength(2);
+
+    const o = anon();
+    await o.auth.signInWithPassword({ email: `plain.${STAMP}@bootstrap.test`, password: 'plain-password-1' });
+    const { data: mine } = await o.from('gyms').select('id').in('name', [gymA, gymB]);
+    expect(mine).toHaveLength(1);
+  });
+});

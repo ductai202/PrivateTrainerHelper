@@ -22,7 +22,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-export default function StudentForm() {
+export default function StudentForm({ pts }: { pts?: { id: string; name: string }[] }) {
   const [state, action, pending] = useActionState(createStudent, undefined);
   return (
     <form
@@ -38,6 +38,18 @@ export default function StudentForm() {
       <h1 className="text-xl font-semibold">Thêm học viên</h1>
       <section className="space-y-3">
         <h2 className="font-medium">Thông tin</h2>
+        {pts && (
+          <Field label="PT phụ trách">
+            <select name="pt_id" aria-label="PT phụ trách" defaultValue="" className={input}>
+              <option value="">Chọn PT</option>
+              {pts.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
         <Field label="Họ tên">
           <input name="full_name" className={input} />
         </Field>

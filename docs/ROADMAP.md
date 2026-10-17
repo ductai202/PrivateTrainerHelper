@@ -85,3 +85,9 @@ Phương án thay thế/bổ sung nếu học viên không chịu nhắn bot: ZN
 - Theo dõi lỗi production (Sentry hoặc tương đương) và log cho `/api/cron/tick`.
 - Lịch sao lưu và thử khôi phục.
 - Dọn dữ liệu e2e: các test hiện xoá buổi tạo trong 24 giờ gần nhất, chỉ chạy trên DB local.
+
+## Đã làm thêm: nhiều trung tâm và giữ Supabase free
+
+- Nhiều trung tâm: admin nền tảng xem và sửa mọi trung tâm, chủ trung tâm chỉ thấy trung tâm mình (migration 0011, phân quyền ở tầng database).
+- Link học viên hiển thị lịch, mục tiêu, thực đơn, tiến độ, bài tập (chỉ đọc).
+- `/api/health` và workflow Keepalive hằng ngày để project Supabase Free không bị tạm dừng.

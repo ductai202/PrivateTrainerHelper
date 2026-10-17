@@ -25,7 +25,7 @@ export interface EveningPrep {
 
 /** Everything the "Chuẩn bị ngày mai" screen shows, for one PT (owners get no suggestions). */
 export async function getEveningPrep(
-  member: { id: string; role: 'owner' | 'pt' },
+  member: { id: string; gymId: string; role: 'owner' | 'pt' },
   now = new Date(),
 ): Promise<EveningPrep> {
   const today = vnDayRange(now);
@@ -107,11 +107,13 @@ export async function getEveningPrep(
     supabase
       .from('waitlist_entries')
       .select('student_id, created_at, students(full_name)')
+      .eq('gym_id', member.gymId)
       .eq('active', true)
       .order('created_at'),
     supabase
       .from('reschedule_requests')
       .select('id, session_id, requested_start, students(full_name)')
+      .eq('gym_id', member.gymId)
       .eq('status', 'pending')
       .order('created_at'),
   ]);

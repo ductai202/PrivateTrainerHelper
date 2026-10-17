@@ -6,8 +6,8 @@ select plan(9);
 create temp table _exp as
 select
   (select count(*) from students where pt_id = 'bbbbbbbb-0000-0000-0000-000000000002')::int as pt_a_students,
-  (select count(*) from students)::int as all_students,
-  (select count(*) from sessions)::int as all_sessions;
+  (select count(*) from students where gym_id = '11111111-0000-0000-0000-000000000001')::int as all_students,
+  (select count(*) from sessions where gym_id = '11111111-0000-0000-0000-000000000001')::int as all_sessions;
 grant select on _exp to authenticated, anon;
 
 -- PT A ----------------------------------------------------------------------
@@ -37,8 +37,8 @@ select is((select count(*) from body_measurements
 -- owner ---------------------------------------------------------------------
 select set_config('request.jwt.claims',
   '{"sub":"aaaaaaaa-0000-0000-0000-000000000001","role":"authenticated"}', true);
-select is((select count(*) from students)::int, (select all_students from _exp), 'owner sees all students');
-select is((select count(*) from sessions)::int, (select all_sessions from _exp), 'owner sees all sessions');
+select is((select count(*) from students)::int, (select all_students from _exp), 'owner sees all students of their center');
+select is((select count(*) from sessions)::int, (select all_sessions from _exp), 'owner sees all sessions of their center');
 
 -- anon ----------------------------------------------------------------------
 reset role;
